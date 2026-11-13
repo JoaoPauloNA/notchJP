@@ -300,7 +300,6 @@ struct NJPAgentsSettingsView: View {
 // MARK: Sobre
 
 struct NJPAboutSettingsView: View {
-    @ObservedObject private var updates = AppUpdateService.shared
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "—"
@@ -315,7 +314,7 @@ struct NJPAboutSettingsView: View {
                 Text("notch").font(.system(size: 30, weight: .regular))
                 Text("JP").font(.system(size: 30, weight: .heavy)).foregroundStyle(NJP.accent)
             }
-            Text(version).font(.callout).foregroundStyle(.secondary)
+            Text(version + " · Edição Pública").font(.callout).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
                 Text("Código aberto").font(.system(size: 13, weight: .bold))
                 Text("O notchJP é baseado no Notchi, de Ruban, e segue a mesma licença GNU GPL v3.")
@@ -324,17 +323,10 @@ struct NJPAboutSettingsView: View {
             .padding(18).frame(maxWidth: .infinity, alignment: .leading)
             .background(NJP.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             VStack(alignment: .leading, spacing: 10) {
-                Toggle("Buscar atualizações automaticamente", isOn: Binding(
-                    get: { updates.automaticChecks }, set: { updates.setAutomaticChecks($0) }))
-                Toggle("Baixar e instalar ao encerrar o app", isOn: Binding(
-                    get: { updates.automaticDownloads }, set: { updates.setAutomaticDownloads($0) }))
-                    .disabled(!updates.automaticChecks)
-                HStack {
-                    Text(updates.status).font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer()
-                    Button("Verificar agora") { updates.check() }.disabled(!updates.canCheck)
-                }
+                Text("Edição pública · atualização manual").font(.headline)
+                Text("Esta edição não consulta servidores de atualização. Para atualizar, obtenha o fonte no GitHub e compile novamente.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Link("Abrir notchJP no GitHub", destination: URL(string: "https://github.com/JoaoPauloNA/notchJP")!)
             }
             .padding(14).background(NJP.surface, in: RoundedRectangle(cornerRadius: 14))
             HStack(spacing: 10) {

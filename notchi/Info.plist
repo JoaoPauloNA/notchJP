@@ -6,6 +6,8 @@
 	<string>notchJP</string>
 	<key>CFBundleName</key>
 	<string>notchJP</string>
+	<key>NJPDistributionEdition</key>
+	<string>public</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

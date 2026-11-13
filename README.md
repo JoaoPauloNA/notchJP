@@ -56,6 +56,12 @@ Local builds use ad-hoc signing by default and are **not Apple-notarized**. For 
 
 The original Notchi download is a different app; its releases do not contain the notchJP features listed here.
 
+## Public and private editions
+
+This repository contains the **public edition**. It has no automatic update service, VPS address, download token, or private release workflow. Settings identifies it as “Edição Pública” and links to this repository for manual updates. The build script and CI reject bundles containing update-feed credentials or enabled automatic updates.
+
+The maintainer's **private edition** is maintained separately, with its own signed automatic-update channel. Private server configuration and distribution credentials are not part of this repository. There is no switch in the public app that enables that channel.
+
 ## First launch
 
 1. Open the app and use **Configurações** to choose visible tabs and appearance.

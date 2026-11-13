@@ -26,6 +26,12 @@ cd notchJP
 
 O aplicativo fica em `build/public/Build/Products/Release/notchJP.app`. O script não instala o app. Esta primeira publicação oferece o fonte, sem instalador público notarizado e sem canal público de atualização automática. A interface está principalmente em português do Brasil.
 
+## Edições pública e privada
+
+Este repositório contém a **edição pública**: sem atualização automática, endereço de VPS ou credencial de distribuição. A tela Sobre identifica a edição e oferece o link do GitHub para atualizar manualmente. O build e o CI verificam essa separação.
+
+A **edição privada** do mantenedor continua em outro repositório, com atualização automática assinada. A versão pública não oferece opção para ativar esse canal.
+
 ## Integrações residenciais
 
 As integrações LG e TCL são experimentais e não oficiais. Modelos, firmware, região e serviços do fabricante podem afetar o funcionamento. A TV exige pareamento na rede local; ligar por Wake-on-LAN depende do aparelho. O ar usa a conta TCL Home e os serviços de nuvem da TCL. Credenciais e configurações pessoais não acompanham o repositório.

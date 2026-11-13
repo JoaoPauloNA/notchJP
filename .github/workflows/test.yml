@@ -22,8 +22,14 @@ jobs:
         run: |
           xcodebuild -version
           xcrun swift --version
+      - name: Verify public source configuration
+        run: |
+          python3 scripts/test_public_build.py
+          python3 scripts/verify_public_build.py notchi/Info.plist
       - name: Build and test
         run: ./scripts/test.sh all
+      - name: Verify built public app
+        run: python3 scripts/verify_public_build.py build/test/DerivedData/Build/Products/Debug/notchJP.app
       - uses: actions/upload-artifact@v4
         if: always()
         with:
