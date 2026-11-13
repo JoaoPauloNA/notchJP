@@ -1,0 +1,74 @@
+# Reference repos
+/reference/
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+**/*.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+**/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# IDE
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Archives
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Secrets
+.env
+.sparkle-keys/
+deploy/updates/secrets/
+deploy/updates/public/
+__pycache__/
+*.pyc
+
+# Claude
+.claude/
+CLAUDE.md
+AGENTS.md
+PLAN.md
+FUTURE_WORK.md
+
+# Distribution
+*.dmg
+*.app
+*.pkg
+
+# Website
+website/node_modules/
+website/dist/
+website/.astro/
+
+# Temporary
+*.log
+tmp/
+*.profraw
+*.profdata
+
+# Download tracking
+docs/downloads.csv
+
+# Local credentials and review artifacts
+*.pem
+*.p12
+*.p8
+.env.*

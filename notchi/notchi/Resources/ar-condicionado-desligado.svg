@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Sombra projetada da unidade -->
+    <filter id="unitShadow" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+
+    <!-- Gradiente do painel frontal principal -->
+    <linearGradient id="frontFaceGrad" x1="80" y1="45" x2="90" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="68%" stop-color="#F6F7F9" />
+      <stop offset="100%" stop-color="#E2E5EA" />
+    </linearGradient>
+
+    <!-- Gradiente da face superior -->
+    <linearGradient id="topFaceGrad" x1="85" y1="42" x2="325" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EDEFF2" />
+    </linearGradient>
+
+    <!-- Gradiente da lateral direita (efeito 3D) -->
+    <linearGradient id="rightSideGrad" x1="312" y1="56" x2="332" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#CFD4DC" />
+      <stop offset="50%" stop-color="#B8BFC9" />
+      <stop offset="100%" stop-color="#9BA3B0" />
+    </linearGradient>
+
+    <!-- Gradiente da base inferior -->
+    <linearGradient id="bottomLipGrad" x1="82" y1="110" x2="320" y2="142" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D5DAE2" />
+      <stop offset="100%" stop-color="#B0B7C3" />
+    </linearGradient>
+
+    <!-- Gradiente do interior da saída de ar (fechada/escura) -->
+    <linearGradient id="ventDarkGrad" x1="86" y1="108" x2="306" y2="134" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2B3038" />
+      <stop offset="100%" stop-color="#1B1F26" />
+    </linearGradient>
+  </defs>
+
+  <!-- Grupo principal do Ar-Condicionado (Desligado) -->
+  <g id="ac-unit-off" filter="url(#unitShadow)">
+    <!-- Base / Chassi traseiro inferior -->
+    <path d="M 84 106 L 312 126 L 326 117 L 326 130 C 326 135 320 139 312 140 L 92 120 C 86 119 82 115 82 110 Z" fill="url(#bottomLipGrad)" />
+
+    <!-- Lateral Direita 3D -->
+    <path d="M 310 60 L 325 54 C 329 53 332 56 332 61 L 332 116 C 332 122 328 128 322 132 L 310 138 Z" fill="url(#rightSideGrad)" />
+
+    <!-- Topo 3D -->
+    <path d="M 84 44 C 88 41 94 40 100 41 L 322 53 C 326 53 328 55 325 57 L 310 62 L 80 48 Z" fill="url(#topFaceGrad)" />
+
+    <!-- Abertura da saída de ar inferior (recesso escuro) -->
+    <path d="M 86 106 L 306 125 L 304 134 L 88 115 Z" fill="url(#ventDarkGrad)" />
+
+    <!-- Aletas verticais internas discretas (desligado) -->
+    <g stroke="#505865" stroke-width="1.4" stroke-linecap="round" opacity="0.65">
+      <line x1="96" y1="108" x2="95" y2="115" />
+      <line x1="106" y1="109" x2="105" y2="116" />
+      <line x1="116" y1="110" x2="115" y2="117" />
+      <line x1="126" y1="111" x2="125" y2="118" />
+      <line x1="136" y1="111.8" x2="135" y2="118.8" />
+      <line x1="146" y1="112.7" x2="145" y2="119.7" />
+      <line x1="156" y1="113.5" x2="155" y2="120.5" />
+      <line x1="166" y1="114.4" x2="165" y2="121.4" />
+      <line x1="176" y1="115.2" x2="175" y2="122.2" />
+      <line x1="186" y1="116.1" x2="185" y2="123.1" />
+      <line x1="196" y1="117" x2="195" y2="124" />
+      <line x1="206" y1="117.8" x2="205" y2="124.8" />
+      <line x1="216" y1="118.7" x2="215" y2="125.7" />
+      <line x1="226" y1="119.5" x2="225" y2="126.5" />
+      <line x1="236" y1="120.4" x2="235" y2="127.4" />
+      <line x1="246" y1="121.2" x2="245" y2="128.2" />
+      <line x1="256" y1="122.1" x2="255" y2="129.1" />
+      <line x1="266" y1="123" x2="265" y2="130" />
+      <line x1="276" y1="123.8" x2="275" y2="130.8" />
+      <line x1="286" y1="124.7" x2="285" y2="131.7" />
+      <line x1="296" y1="125.5" x2="295" y2="132.5" />
+    </g>
+
+    <!-- Defletor / Pá fechada -->
+    <path d="M 86 111 L 305 130 L 304 134 L 87 115 Z" fill="#C9CFD8" />
+
+    <!-- Painel Frontal Principal Curvo -->
+    <path d="M 84 44 C 80 45 78 49 78 55 L 78 100 C 78 104 81 107 86 108 L 306 127 C 310 127 313 124 313 119 L 313 65 C 313 60 310 57 305 57 L 84 44 Z" fill="url(#frontFaceGrad)" />
+
+    <!-- Linha de divisão sutil no painel frontal -->
+    <path d="M 80 101 L 311 120" stroke="#D0D5DD" stroke-width="1" opacity="0.8" />
+
+    <!-- Brilho na borda superior frontal -->
+    <path d="M 83 45.5 L 307 58.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.95" />
+
+    <!-- Visor LED (Apagado / Standby) -->
+    <g id="led-panel-off" transform="translate(248, 78) skewY(4.8)">
+      <rect x="0" y="0" width="46" height="22" rx="4" fill="#E3E7EE" opacity="0.55" />
+      <!-- Dígitos 88° apagados bem sutis -->
+      <text x="19" y="15.5" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13" font-weight="700" fill="#CBD1DC" text-anchor="middle" letter-spacing="0.5" opacity="0.45">--°</text>
+      <!-- Ponto indicador LED apagado -->
+      <circle cx="38" cy="11" r="2" fill="#BAC2CF" opacity="0.6" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>notchJP</string>
+	<key>CFBundleName</key>
+	<string>notchJP</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>O aplicativo precisa acessar o Spotify para mostrar e controlar a reprodução.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>O notchJP processa o som de cada aplicativo para ajustar seu volume individual, sem gravar áudio em arquivo.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>O notchJP mostra seus próximos compromissos no notch.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Conectar e controlar sua TV LG pela rede local.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O notchJP grava sua voz só quando você inicia um ditado.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>O notchJP mostra os lembretes de hoje e deixa concluí-los no notch.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>O notchJP usa o reconhecimento de fala do macOS, no próprio Mac, para transcrever o ditado.</string>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUBundleName</key>
+	<string>notchJP</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUScheduledImpatientCheckInterval</key>
+	<integer>90000</integer>
+	<key>SUShowReleaseNotes</key>
+	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+</dict>
+</plist>

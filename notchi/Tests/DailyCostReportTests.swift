@@ -1,0 +1,483 @@
+import XCTest
+import os
+@testable import notchi
+
+final class CostHistoryStoreTests: XCTestCase {
+    @MainActor
+    func testStoreWhosePricingCannotRefreshScansOnceAtLaunch() async {
+        let scanCount = OSAllocatedUnfairLock(initialState: 0)
+        let catalog = PricingCatalog(config: .devin, fallbackBundle: .main, snapshotURL: nil, fetchCatalog: { nil })
+        let store = CostHistoryStore(windowDays: 30, calendar: .current, provider: .devin,
+                                     pricingCatalog: catalog) { _ in
+            scanCount.withLock { $0 += 1 }
+            return [:]
+        }
+
+        await store.refresh()
+
+        XCTAssertEqual(scanCount.withLock { $0 }, 1)
+    }
+
+    @MainActor
+    func testStorePublishesReportFromInjectedScan() async {
+        var buckets: DayModelBuckets = [:]
+        buckets[DailyCostReport.dayKey(Date(), calendar: .current)] =
+            ["claude-opus-4": ModelTokenTotals(input: 10, output: 5, costNanos: 3_000_000_000,
+                                               requestCount: 1, pricedCount: 1)]
+        let store = CostHistoryStore(windowDays: 30, calendar: .current,
+            scanProvider: { _ in buckets })
+        await store.refresh()
+        XCTAssertEqual(store.report?.todayCostUSD ?? 0, 3.0, accuracy: 1e-9)
+        XCTAssertEqual(store.report?.topModel, "claude-opus-4")
+        XCTAssertFalse(store.isScanning)
+    }
+
+    @MainActor
+    func testRefreshStampsConfiguredProviderOnReport() async {
+        let buckets: DayModelBuckets = [
+            "2026-06-25": ["gpt-5.5": ModelTokenTotals(input: 100, output: 50, costNanos: 1_000,
+                                                       requestCount: 1, pricedCount: 1)]
+        ]
+        let store = CostHistoryStore(windowDays: 7, calendar: .current, provider: .codex,
+            scanProvider: { _ in buckets })
+        await store.refresh()
+        XCTAssertEqual(store.report?.provider, .codex)
+    }
+
+    @MainActor
+    func testRefreshDefaultsToClaudeProvider() async {
+        let store = CostHistoryStore(windowDays: 7, calendar: .current, scanProvider: { _ in [:] })
+        await store.refresh()
+        XCTAssertEqual(store.report?.provider, .claude)
+    }
+
+    /// Writes one assistant usage line timestamped now under `root/projects`.
+    private func writeSession(root: URL, model: String, inputTokens: Int, outputTokens: Int,
+                              requestId: String = "r1") throws {
+        let projectDir = root.appendingPathComponent("projects/p", isDirectory: true)
+        try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+        let line = """
+        {"type":"assistant","timestamp":"\(ISO8601DateFormatter().string(from: Date()))","requestId":"\(requestId)",\
+        "message":{"id":"m-\(requestId)","model":"\(model)",\
+        "usage":{"input_tokens":\(inputTokens),"output_tokens":\(outputTokens),\
+        "cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}
+
+        """
+        try line.data(using: .utf8)!.write(to: projectDir.appendingPathComponent("\(requestId).jsonl"))
+    }
+
+    @MainActor
+    private func storeScanningSession(model: String, inputTokens: Int, outputTokens: Int,
+                                      catalog: PricingCatalog,
+                                      root: URL = FileManager.default.temporaryDirectory
+                                          .appendingPathComponent(UUID().uuidString)) throws -> CostHistoryStore {
+        try writeSession(root: root, model: model, inputTokens: inputTokens, outputTokens: outputTokens)
+        return CostHistoryStore(windowDays: 30, calendar: .current, pricing: catalog,
+                                projectsRoots: [root.appendingPathComponent("projects")],
+                                cacheURL: root.appendingPathComponent("cache.json"))
+    }
+
+    private actor FetchCounter {
+        private(set) var count = 0
+        func increment() { count += 1 }
+    }
+
+    @MainActor
+    func testRefreshPricesModelReleasedAfterLaunchWithoutRestart() async throws {
+        let newModel = "claude-released-after-launch-1"
+        let inputPerMillion = 2.0
+        let outputPerMillion = 10.0
+        let inputTokens = 1_000
+        let outputTokens = 500
+        let expectedCostUSD = Double(inputTokens) * inputPerMillion / 1_000_000
+            + Double(outputTokens) * outputPerMillion / 1_000_000
+
+        // The anchors are included so the refresh passes the plausibility guard.
+        let modelsDev = """
+        {"anthropic":{"models":{
+          "\(newModel)":{"cost":{"input":\(inputPerMillion),"output":\(outputPerMillion)}},
+          "claude-sonnet-4-6":{"cost":{"input":3,"output":15}},
+          "claude-opus-4-8":{"cost":{"input":5,"output":25}}
+        }}}
+        """.data(using: .utf8)!
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: { modelsDev })
+        XCTAssertNil(catalog.pricing(model: newModel, on: Date()), "precondition: launch-time pricing lacks the new model")
+
+        let store = try storeScanningSession(model: newModel, inputTokens: inputTokens,
+                                             outputTokens: outputTokens, catalog: catalog)
+        await store.refresh()
+
+        XCTAssertEqual(store.report?.todayCostUSD ?? 0, expectedCostUSD, accuracy: 1e-12)
+        XCTAssertEqual(store.report?.entries.last?.pricedFraction, 1)
+    }
+
+    @MainActor
+    func testUnpriceableModelFetchesCatalogOnceWithinRetryInterval() async throws {
+        let counter = FetchCounter()
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: {
+            await counter.increment()
+            return nil
+        })
+        let store = try storeScanningSession(model: "model-models-dev-never-lists",
+                                             inputTokens: 10, outputTokens: 5, catalog: catalog)
+        await store.refresh()
+        await store.refresh()
+
+        let fetches = await counter.count
+        XCTAssertEqual(fetches, 1)
+    }
+
+    @MainActor
+    func testFirstRefreshFetchesCatalogWhenEveryModelIsPriced() async throws {
+        let counter = FetchCounter()
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: {
+            await counter.increment()
+            return nil
+        })
+        let store = try storeScanningSession(model: "claude-sonnet-4-6",
+                                             inputTokens: 10, outputTokens: 5, catalog: catalog)
+        XCTAssertNotNil(catalog.pricing(model: "claude-sonnet-4-6", on: Date()), "precondition: fallback prices the model")
+        await store.refresh()
+
+        let fetches = await counter.count
+        XCTAssertEqual(fetches, 1, "launch refresh must still pick up price changes for known models")
+    }
+
+    @MainActor
+    func testScanIsPublishedBeforeSlowCatalogFetchCompletes() async throws {
+        let inputTokens = 10
+        let outputTokens = 5
+        let (fetchStarted, fetchStartedContinuation) = AsyncStream<Void>.makeStream()
+        let (fetchRelease, fetchReleaseContinuation) = AsyncStream<Void>.makeStream()
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: {
+            fetchStartedContinuation.yield()
+            for await _ in fetchRelease {}
+            return nil
+        })
+        let store = try storeScanningSession(model: "model-models-dev-never-lists",
+                                             inputTokens: inputTokens, outputTokens: outputTokens,
+                                             catalog: catalog)
+
+        let refresh = Task { await store.refresh() }
+        for await _ in fetchStarted { break }
+
+        XCTAssertEqual(store.report?.todayTokens, inputTokens + outputTokens)
+        fetchReleaseContinuation.finish()
+        await refresh.value
+    }
+
+    @MainActor
+    func testTimerRefreshesDuringAScanDoNotMakeItRepeat() async throws {
+        let launchScanPlusPostFetchRescan = 2
+        let scanCount = OSAllocatedUnfairLock(initialState: 0)
+        let counter = FetchCounter()
+        let (launchScanStarted, launchScanStartedContinuation) = AsyncStream<Void>.makeStream()
+        let (launchScanRelease, launchScanReleaseContinuation) = AsyncStream<Void>.makeStream()
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: {
+            await counter.increment()
+            return nil
+        })
+        let store = CostHistoryStore(windowDays: 30, calendar: .current, provider: .claude,
+                                     pricingCatalog: catalog) { _ in
+            let scan = scanCount.withLock { $0 += 1; return $0 }
+            if scan == 1 {
+                launchScanStartedContinuation.yield()
+                for await _ in launchScanRelease {}
+            }
+            return [:]
+        }
+
+        let launchRefresh = Task { await store.refresh() }
+        for await _ in launchScanStarted { break }
+        await store.refresh()
+        await store.refresh()
+        launchScanReleaseContinuation.finish()
+        await launchRefresh.value
+
+        XCTAssertEqual(scanCount.withLock { $0 }, launchScanPlusPostFetchRescan)
+        let fetches = await counter.count
+        XCTAssertEqual(fetches, 1)
+    }
+
+    @MainActor
+    func testFetchFinishingDuringTimerScanStillRepricesReport() async throws {
+        let pricedCostNanos = 7_000_000
+        let unpriced = ModelTokenTotals(input: 10, output: 5, requestCount: 1, pricedCount: 0)
+        let priced = ModelTokenTotals(input: 10, output: 5, costNanos: pricedCostNanos,
+                                      requestCount: 1, pricedCount: 1)
+        let dayKey = DailyCostReport.dayKey(Date(), calendar: .current)
+        let catalogFetched = OSAllocatedUnfairLock(initialState: false)
+        let scanCount = OSAllocatedUnfairLock(initialState: 0)
+        let (fetchStarted, fetchStartedContinuation) = AsyncStream<Void>.makeStream()
+        let (fetchRelease, fetchReleaseContinuation) = AsyncStream<Void>.makeStream()
+        let (timerScanStarted, timerScanStartedContinuation) = AsyncStream<Void>.makeStream()
+        let (timerScanRelease, timerScanReleaseContinuation) = AsyncStream<Void>.makeStream()
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: {
+            fetchStartedContinuation.yield()
+            for await _ in fetchRelease {}
+            catalogFetched.withLock { $0 = true }
+            return nil
+        })
+        let store = CostHistoryStore(windowDays: 30, calendar: .current, provider: .claude,
+                                     pricingCatalog: catalog) { _ in
+            // A scan prices the model only if it started after the catalog fetch landed.
+            let sawFetchedCatalog = catalogFetched.withLock { $0 }
+            let scan = scanCount.withLock { $0 += 1; return $0 }
+            if scan == 2 {
+                timerScanStartedContinuation.yield()
+                for await _ in timerScanRelease {}
+            }
+            return [dayKey: ["claude-new": sawFetchedCatalog ? priced : unpriced]]
+        }
+
+        let launchRefresh = Task { await store.refresh() }
+        for await _ in fetchStarted { break }
+        let timerRefresh = Task { await store.refresh() }
+        for await _ in timerScanStarted { break }
+        fetchReleaseContinuation.finish()
+        await launchRefresh.value
+        timerScanReleaseContinuation.finish()
+        await timerRefresh.value
+
+        XCTAssertEqual(store.report?.todayCostUSD ?? 0, Double(pricedCostNanos) / 1_000_000_000, accuracy: 1e-12)
+    }
+
+    @MainActor
+    func testRefreshScansNewUsageWhileCatalogFetchIsPending() async throws {
+        let firstTokens = (input: 10, output: 5)
+        let laterTokens = (input: 100, output: 50)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let (fetchStarted, fetchStartedContinuation) = AsyncStream<Void>.makeStream()
+        let (fetchRelease, fetchReleaseContinuation) = AsyncStream<Void>.makeStream()
+        let catalog = PricingCatalog(fallbackBundle: .main, fetchCatalog: {
+            fetchStartedContinuation.yield()
+            for await _ in fetchRelease {}
+            return nil
+        })
+        let store = try storeScanningSession(model: "model-models-dev-never-lists",
+                                             inputTokens: firstTokens.input, outputTokens: firstTokens.output,
+                                             catalog: catalog, root: root)
+
+        let pendingFetch = Task { await store.refresh() }
+        for await _ in fetchStarted { break }
+        try writeSession(root: root, model: "model-models-dev-never-lists",
+                         inputTokens: laterTokens.input, outputTokens: laterTokens.output, requestId: "r2")
+        await store.refresh()
+
+        XCTAssertEqual(store.report?.todayTokens,
+                       firstTokens.input + firstTokens.output + laterTokens.input + laterTokens.output)
+        fetchReleaseContinuation.finish()
+        await pendingFetch.value
+    }
+}
+
+final class DailyCostReportTests: XCTestCase {
+    private func day(_ s: String) -> Date {
+        let f = DateFormatter(); f.calendar = Calendar(identifier: .gregorian)
+        f.timeZone = TimeZone(identifier: "UTC"); f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: s)!
+    }
+
+    func testReportDerivesHeadlineStatsAndGapFills() {
+        var buckets: DayModelBuckets = [:]
+        buckets["2026-06-22"] = ["claude-sonnet-4": ModelTokenTotals(
+            input: 100, output: 50, costNanos: 2_000_000_000, requestCount: 1, pricedCount: 1)]
+        buckets["2026-06-24"] = [
+            "claude-opus-4": ModelTokenTotals(
+                input: 300, output: 100, costNanos: 9_000_000_000, requestCount: 2, pricedCount: 2),
+            "claude-sonnet-4": ModelTokenTotals(
+                input: 200, output: 20, costNanos: 1_000_000_000, requestCount: 1, pricedCount: 1)]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.make(
+            provider: .claude, buckets: buckets,
+            windowStart: day("2026-06-20"), today: day("2026-06-24"), calendar: cal)
+
+        // window 06-20..06-24 → gap-filled ascending indices: 0=20, 1=21, 2=22, 3=23, 4=24
+        XCTAssertEqual(report.entries.count, 5)
+        XCTAssertEqual(report.entries[1].costUSD, 0, accuracy: 1e-9)   // 21st: no activity
+        XCTAssertEqual(report.entries[2].costUSD, 2.0, accuracy: 1e-9) // 22nd: $2
+        XCTAssertEqual(report.windowCostUSD, 12.0, accuracy: 1e-9)     // 2 + 9 + 1
+        XCTAssertEqual(report.windowTokens, 100 + 50 + 300 + 100 + 200 + 20)
+        XCTAssertEqual(report.todayCostUSD, 10.0, accuracy: 1e-9)      // 24th: 9 + 1
+        XCTAssertEqual(report.todayTokens, 300 + 100 + 200 + 20)      // 24th: all models summed
+        XCTAssertEqual(report.topModel, "claude-opus-4")              // highest cost across window
+    }
+
+    func testTopModelTieOnCostIsBrokenByTokensThenName() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+
+        var unpriced: DayModelBuckets = [:]
+        unpriced["2026-06-24"] = [
+            "gpt-5.6-sol": ModelTokenTotals(input: 900, output: 100, costNanos: 0,
+                                            requestCount: 3, pricedCount: 0),
+            "gpt-5.6-luna": ModelTokenTotals(input: 100, output: 50, costNanos: 0,
+                                             requestCount: 1, pricedCount: 0)]
+        let unpricedReport = DailyCostReport.make(
+            provider: .codex, buckets: unpriced,
+            windowStart: day("2026-06-20"), today: day("2026-06-24"), calendar: cal)
+        XCTAssertEqual(unpricedReport.topModel, "gpt-5.6-sol", "more tokens must win a cost tie")
+
+        var identical: DayModelBuckets = [:]
+        identical["2026-06-24"] = [
+            "gpt-5.5": ModelTokenTotals(input: 100, output: 50, costNanos: 5_000,
+                                        requestCount: 1, pricedCount: 1),
+            "gpt-5.4": ModelTokenTotals(input: 100, output: 50, costNanos: 5_000,
+                                        requestCount: 1, pricedCount: 1)]
+        let identicalReport = DailyCostReport.make(
+            provider: .codex, buckets: identical,
+            windowStart: day("2026-06-20"), today: day("2026-06-24"), calendar: cal)
+        XCTAssertEqual(identicalReport.topModel, "gpt-5.4", "lowest name must win an exact tie")
+    }
+
+    func testEntriesCarryTheirOwnTopModel() {
+        var buckets: DayModelBuckets = [:]
+        buckets["2026-06-22"] = [
+            "claude-sonnet-4": ModelTokenTotals(
+                input: 100, output: 50, costNanos: 8_000_000_000, requestCount: 1, pricedCount: 1),
+            "claude-opus-4": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 1_000_000_000, requestCount: 1, pricedCount: 1)]
+        buckets["2026-06-24"] = [
+            "claude-opus-4": ModelTokenTotals(
+                input: 300, output: 100, costNanos: 9_000_000_000, requestCount: 2, pricedCount: 2)]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.make(
+            provider: .claude, buckets: buckets,
+            windowStart: day("2026-06-20"), today: day("2026-06-24"), calendar: cal)
+
+        XCTAssertEqual(report.entries[2].topModel, "claude-sonnet-4")
+        XCTAssertEqual(report.entries[4].topModel, "claude-opus-4")
+        XCTAssertNil(report.entries[1].topModel)
+        XCTAssertEqual(report.topModel, "claude-opus-4")
+    }
+
+    @MainActor
+    func testSizingCoversEveryHoverStateAndTheModelReference() {
+        var buckets: DayModelBuckets = [:]
+        buckets["2026-06-22"] = ["gpt-5.6-sol": ModelTokenTotals(
+            input: 100, output: 50, costNanos: 8_000_000_000, requestCount: 1, pricedCount: 1)]
+        buckets["2026-06-24"] = ["gpt-5.5": ModelTokenTotals(
+            input: 300, output: 100, costNanos: 9_000_000_000, requestCount: 2, pricedCount: 2)]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.make(
+            provider: .codex, buckets: buckets,
+            windowStart: day("2026-06-20"), today: day("2026-06-24"), calendar: cal)
+
+        let sets = CostDashboardView.sizingValueSets(report)
+        let modelColumn = sets.map { $0[$0.count - 1] }
+
+        XCTAssertTrue(modelColumn.contains("Opus 4.8"))
+        XCTAssertTrue(modelColumn.contains("5.6-sol"))
+        XCTAssertTrue(modelColumn.contains("GPT-5.5"))
+        XCTAssertEqual(sets.count, 4, "unselected + reference + one per active day")
+    }
+
+    func testSegmentsShadeWindowTopTwoModelsAndFoldRestIntoOther() {
+        var buckets: DayModelBuckets = [:]
+        buckets["2026-06-22"] = [
+            "claude-opus-4": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 9_000_000_000, requestCount: 1, pricedCount: 1),
+            "claude-sonnet-4": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 4_000_000_000, requestCount: 1, pricedCount: 1),
+            "claude-haiku-4": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 1_000_000_000, requestCount: 1, pricedCount: 1),
+            "claude-fable-5": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 2_000_000_000, requestCount: 1, pricedCount: 1)]
+        buckets["2026-06-24"] = [
+            "claude-sonnet-4": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 3_000_000_000, requestCount: 1, pricedCount: 1)]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.make(
+            provider: .claude, buckets: buckets,
+            windowStart: day("2026-06-22"), today: day("2026-06-24"), calendar: cal)
+
+        let first = report.entries[0].segments
+        XCTAssertEqual(first.map(\.rank), [0, 1, 2])
+        XCTAssertEqual(first[0].costUSD, 9.0, accuracy: 1e-9)
+        XCTAssertEqual(first[1].costUSD, 4.0, accuracy: 1e-9)
+        XCTAssertEqual(first[2].costUSD, 3.0, accuracy: 1e-9)
+        XCTAssertEqual(first[0].models, ["claude-opus-4"])
+        XCTAssertEqual(first[2].models, ["claude-fable-5", "claude-haiku-4"])
+
+        XCTAssertEqual(
+            report.entries[2].segments,
+            [DailyCostReport.Segment(rank: 1, costUSD: 3.0, models: ["claude-sonnet-4"])])
+
+        XCTAssertEqual(report.entries[1].segments, [])
+    }
+
+    func testCombinedReportStacksProvidersAndRanksRealModels() {
+        var claude: DayModelBuckets = [:]
+        claude["2026-06-23"] = [
+            "claude-fable-5": ModelTokenTotals(
+                input: 100, output: 50, costNanos: 2_000_000_000, requestCount: 1, pricedCount: 1),
+            "claude-haiku-4": ModelTokenTotals(
+                input: 10, output: 5, costNanos: 1_000_000_000, requestCount: 1, pricedCount: 1)]
+        var codex: DayModelBuckets = [:]
+        codex["2026-06-23"] = ["gpt-5.5": ModelTokenTotals(
+            input: 200, output: 80, costNanos: 8_000_000_000, requestCount: 2, pricedCount: 2)]
+        codex["2026-06-24"] = ["gpt-5.5": ModelTokenTotals(
+            input: 50, output: 20, costNanos: 1_000_000_000, requestCount: 1, pricedCount: 1)]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.combinedAcrossProviders(
+            [(.claude, claude), (.codex, codex)],
+            windowStart: day("2026-06-22"), today: day("2026-06-24"), calendar: cal)
+
+        let mixedDay = report.entries[1]
+        XCTAssertEqual(mixedDay.costUSD, 11.0, accuracy: 1e-9)
+        XCTAssertEqual(mixedDay.segments.map(\.models), [["claude"], ["codex"]])
+        XCTAssertEqual(mixedDay.segments[0].costUSD, 3.0, accuracy: 1e-9)
+        XCTAssertEqual(mixedDay.segments[1].costUSD, 8.0, accuracy: 1e-9)
+
+        XCTAssertEqual(mixedDay.topModel, "gpt-5.5")
+        XCTAssertEqual(report.entries[2].topModel, "gpt-5.5")
+        XCTAssertEqual(report.topModel, "gpt-5.5")
+        XCTAssertEqual(report.windowCostUSD, 12.0, accuracy: 1e-9)
+    }
+
+    func testCombinedReportGivesEveryProviderItsOwnSegment() throws {
+        let dayKey = "2026-06-24"
+        let claude: DayModelBuckets = [dayKey: ["claude-fable-5": ModelTokenTotals(
+            input: 100, output: 50, costNanos: 3_000_000_000, requestCount: 1, pricedCount: 1)]]
+        let codex: DayModelBuckets = [dayKey: ["gpt-5.5": ModelTokenTotals(
+            input: 200, output: 80, costNanos: 2_000_000_000, requestCount: 1, pricedCount: 1)]]
+        let devin: DayModelBuckets = [dayKey: ["swe-1-7": ModelTokenTotals(
+            input: 300, output: 90, costNanos: 1_000_000_000, requestCount: 1, pricedCount: 1)]]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.combinedAcrossProviders(
+            [(.claude, claude), (.codex, codex), (.devin, devin)],
+            windowStart: day(dayKey), today: day(dayKey), calendar: cal)
+
+        let entry = try XCTUnwrap(report.entries.last)
+        XCTAssertEqual(entry.segments.map(\.models), [["claude"], ["codex"], ["devin"]])
+        XCTAssertEqual(try XCTUnwrap(entry.segments.last).costUSD, 1.0, accuracy: 1e-9)
+        XCTAssertEqual(report.windowCostUSD, 6.0, accuracy: 1e-9)
+    }
+
+    func testTodayTokensAreZeroWhenTodayHasNoActivity() {
+        var buckets: DayModelBuckets = [:]
+        buckets["2026-06-24"] = ["gpt-5.5": ModelTokenTotals(
+            input: 300, output: 100, costNanos: 9_000_000_000, requestCount: 2, pricedCount: 2)]
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "UTC")!
+        let report = DailyCostReport.make(
+            provider: .codex, buckets: buckets,
+            windowStart: day("2026-06-20"), today: day("2026-06-25"), calendar: cal)
+
+        XCTAssertEqual(report.todayCostUSD, 0, accuracy: 1e-9)
+        XCTAssertEqual(report.todayTokens, 0)
+    }
+}

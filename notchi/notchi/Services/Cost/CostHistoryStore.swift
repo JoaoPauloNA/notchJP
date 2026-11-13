@@ -1,0 +1,178 @@
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class CostHistoryStore {
+    private(set) var report: DailyCostReport?
+    private(set) var buckets: DayModelBuckets = [:]
+    private(set) var isScanning = false
+    private(set) var lastScan: Date?
+
+    let windowDays: Int
+    let calendar: Calendar
+    private let provider: CostProvider
+    private let scanProvider: @Sendable (Date) async -> DayModelBuckets
+    private var timer: Timer?
+    private let refreshInterval: TimeInterval = 90
+    private let pricingRetryInterval: TimeInterval = 60 * 60
+    private let pricingCatalog: PricingCatalog?
+    private var lastPricingRefresh: Date?
+    private var needsRescan = false
+
+    init(windowDays: Int = 30, calendar: Calendar = .current, provider: CostProvider = .claude,
+         scanProvider: @escaping @Sendable (Date) async -> DayModelBuckets) {
+        self.windowDays = windowDays
+        self.calendar = calendar
+        self.provider = provider
+        self.scanProvider = scanProvider
+        self.pricingCatalog = nil
+    }
+
+    convenience init(windowDays: Int = 30, calendar: Calendar = .current,
+                     provider: CostProvider = .claude,
+                     pricing: PricingCatalog,
+                     projectsRoots: [URL],
+                     cacheURL: URL) {
+        let scan = Self.makeScan(provider: provider, projectsRoots: projectsRoots,
+                                 pricing: pricing, windowDays: windowDays, calendar: calendar)
+        self.init(windowDays: windowDays, calendar: calendar, provider: provider, pricingCatalog: pricing) { now in
+            await Task.detached(priority: .utility) {
+                let sig = pricing.signature()
+                let cache = CostUsageCacheStore.load(url: cacheURL).reconciled(withPricingSignature: sig)
+                var updated = scan(cache, now)
+                updated.pricingSignature = sig
+                CostUsageCacheStore.save(updated, to: cacheURL)
+                return updated.buckets
+            }.value
+        }
+    }
+
+    private static func makeScan(provider: CostProvider, projectsRoots: [URL], pricing: PricingCatalog,
+                                 windowDays: Int, calendar: Calendar) -> @Sendable (CostUsageCache, Date) -> CostUsageCache {
+        switch provider {
+        case .claude:
+            let scanner = ClaudeCostScanner(projectsRoots: projectsRoots, pricing: pricing,
+                                            windowDays: windowDays, calendar: calendar)
+            return { scanner.scan(cache: $0, now: $1) }
+        case .codex:
+            let scanner = CodexCostScanner(projectsRoots: projectsRoots, pricing: pricing,
+                                           windowDays: windowDays, calendar: calendar)
+            return { scanner.scan(cache: $0, now: $1) }
+        case .devin:
+            let databaseURL = (projectsRoots.first ?? homeURL(".local/share/devin/cli"))
+                .appendingPathComponent("sessions.db")
+            let scanner = DevinCostScanner(databaseURL: databaseURL, pricing: pricing,
+                                           windowDays: windowDays, calendar: calendar)
+            return { scanner.scan(cache: $0, now: $1) }
+        }
+    }
+
+    init(windowDays: Int, calendar: Calendar, provider: CostProvider, pricingCatalog: PricingCatalog,
+         scanProvider: @escaping @Sendable (Date) async -> DayModelBuckets) {
+        self.windowDays = windowDays
+        self.calendar = calendar
+        self.provider = provider
+        self.scanProvider = scanProvider
+        self.pricingCatalog = pricingCatalog
+    }
+
+    func start() {
+        guard timer == nil else { return }
+        Task { await refresh() }
+        timer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.refresh() }
+        }
+    }
+
+    func refresh() async {
+        let now = Date()
+        guard let buckets = await scanAndPublish(),
+              let catalog = pricingCatalog, catalog.canRefreshFromNetwork,
+              shouldRefreshPricing(after: buckets, now: now) else { return }
+        // The fetch runs outside isScanning so a slow models.dev never blocks timer scans.
+        lastPricingRefresh = now
+        await catalog.refreshFromNetwork()
+        await scanAndPublish(rescanIfBusy: true)
+    }
+
+    /// Overlapping timer ticks are dropped. The post-fetch call instead makes a running scan
+    /// go once more, so a scan that began before new pricing arrived is never the last one published.
+    @discardableResult
+    private func scanAndPublish(rescanIfBusy: Bool = false) async -> DayModelBuckets? {
+        if isScanning {
+            if rescanIfBusy { needsRescan = true }
+            return nil
+        }
+        isScanning = true
+        defer { isScanning = false }
+        var buckets: DayModelBuckets
+        repeat {
+            needsRescan = false
+            let now = Date()
+            buckets = await scanProvider(now)
+            publish(buckets, now: now)
+        } while needsRescan
+        return buckets
+    }
+
+    private func publish(_ buckets: DayModelBuckets, now: Date) {
+        let windowStart = calendar.date(byAdding: .day, value: -(windowDays - 1),
+                                        to: calendar.startOfDay(for: now))!
+        self.buckets = buckets
+        report = DailyCostReport.make(
+            provider: provider, buckets: buckets,
+            windowStart: windowStart, today: now, calendar: calendar)
+        lastScan = now
+    }
+
+    /// Fetches once at launch, then again only when a model released since scans unpriced.
+    private func shouldRefreshPricing(after buckets: DayModelBuckets, now: Date) -> Bool {
+        guard let lastPricingRefresh else { return true }
+        return Self.hasUnpricedRequests(buckets)
+            && now.timeIntervalSince(lastPricingRefresh) >= pricingRetryInterval
+    }
+
+    private static func hasUnpricedRequests(_ buckets: DayModelBuckets) -> Bool {
+        buckets.values.contains { models in
+            models.values.contains { $0.pricedCount < $0.requestCount }
+        }
+    }
+}
+
+// MARK: - Shared singletons
+
+extension CostHistoryStore {
+    static let shared = makeStore(
+        provider: .claude, config: .claude,
+        projectsRoots: [homeURL(".claude/projects")], cacheFile: "claude.json")
+
+    static let sharedCodex = makeStore(
+        provider: .codex, config: .codex,
+        projectsRoots: [homeURL(".codex/sessions"), homeURL(".codex/archived_sessions")],
+        cacheFile: "codex.json")
+
+    static let sharedDevin = makeStore(
+        provider: .devin, config: .devin,
+        projectsRoots: [homeURL(".local/share/devin/cli")],
+        cacheFile: "devin.json")
+
+    private static func homeURL(_ sub: String) -> URL {
+        URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(sub, isDirectory: true)
+    }
+
+    private static func cacheURL(_ file: String) -> URL {
+        if let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            return cachesDir.appendingPathComponent("CostUsage/\(file)")
+        }
+        return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".notchi/CostUsage/\(file)")
+    }
+
+    private static func makeStore(provider: CostProvider, config: ProviderConfig,
+                                  projectsRoots: [URL], cacheFile: String) -> CostHistoryStore {
+        let pricing = PricingCatalog(config: config, fallbackBundle: .main,
+                                     snapshotURL: PricingCatalog.defaultSnapshotURL(for: config))
+        return CostHistoryStore(provider: provider, pricing: pricing,
+                                projectsRoots: projectsRoots, cacheURL: cacheURL(cacheFile))
+    }
+}

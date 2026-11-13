@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Sombra projetada da unidade -->
+    <filter id="unitShadow" x="-15%" y="-15%" width="130%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+
+    <!-- Brilho neon para o mostrador de temperatura em LED -->
+    <filter id="ledGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2.2" result="blur1" />
+      <feGaussianBlur stdDeviation="5" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Desfoque suave para a cortina de ar frio -->
+    <filter id="airMistBlur" x="-20%" y="-10%" width="140%" height="130%">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+
+    <!-- Gradiente do painel frontal principal -->
+    <linearGradient id="frontFaceGrad" x1="80" y1="45" x2="90" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="68%" stop-color="#F6F7F9" />
+      <stop offset="100%" stop-color="#E2E5EA" />
+    </linearGradient>
+
+    <!-- Gradiente da face superior -->
+    <linearGradient id="topFaceGrad" x1="85" y1="42" x2="325" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#EDEFF2" />
+    </linearGradient>
+
+    <!-- Gradiente da lateral direita (efeito 3D) -->
+    <linearGradient id="rightSideGrad" x1="312" y1="56" x2="332" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#CFD4DC" />
+      <stop offset="50%" stop-color="#B8BFC9" />
+      <stop offset="100%" stop-color="#9BA3B0" />
+    </linearGradient>
+
+    <!-- Gradiente da base inferior -->
+    <linearGradient id="bottomLipGrad" x1="82" y1="110" x2="320" y2="142" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D5DAE2" />
+      <stop offset="100%" stop-color="#B0B7C3" />
+    </linearGradient>
+
+    <!-- Gradiente do interior da saída de ar (aberta) -->
+    <linearGradient id="ventDarkGrad" x1="86" y1="108" x2="306" y2="134" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E242D" />
+      <stop offset="100%" stop-color="#12161C" />
+    </linearGradient>
+
+    <!-- Gradiente da névoa/cortina de vento principal -->
+    <linearGradient id="windCurtainGrad" x1="195" y1="115" x2="165" y2="245" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#DCEFFF" stop-opacity="0.42" />
+      <stop offset="35%" stop-color="#B8E2FF" stop-opacity="0.26" />
+      <stop offset="75%" stop-color="#88CCFF" stop-opacity="0.10" />
+      <stop offset="100%" stop-color="#88CCFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Gradiente das linhas de fluxo de vento -->
+    <linearGradient id="windLineGrad" x1="190" y1="116" x2="155" y2="242" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.05" />
+      <stop offset="18%" stop-color="#E5F4FF" stop-opacity="0.55" />
+      <stop offset="65%" stop-color="#AEE0FF" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#88CCFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Estilo de animação para o fluxo de ar -->
+    <style>
+      .wind-stream {
+        stroke-dasharray: 95 25;
+        animation: airFlow 2.6s linear infinite;
+      }
+      .wind-stream-slow {
+        stroke-dasharray: 80 30;
+        animation: airFlow 3.4s linear infinite;
+      }
+      .wind-curtain {
+        animation: pulseMist 3.2s ease-in-out infinite;
+      }
+      @keyframes airFlow {
+        0% { stroke-dashoffset: 120; }
+        100% { stroke-dashoffset: 0; }
+      }
+      @keyframes pulseMist {
+        0%, 100% { opacity: 0.88; }
+        50% { opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  <!-- CAMADA DE VENTO / FLUXO DE AR (Saindo da abertura inferior) -->
+  <g id="airflow-effect">
+    <!-- Cortina de ar difusa ao fundo (igual ao vídeo) -->
+    <path class="wind-curtain" d="M 90 115 L 302 134 C 296 175 278 212 246 250 L 42 225 C 68 188 84 152 90 115 Z" fill="url(#windCurtainGrad)" filter="url(#airMistBlur)" />
+
+    <!-- Segunda camada interna de névoa fria -->
+    <path d="M 102 117 L 292 134 C 284 168 268 202 242 234 L 62 212 C 84 180 96 148 102 117 Z" fill="url(#windCurtainGrad)" opacity="0.65" />
+
+    <!-- Feixes e linhas curvas de vento saindo -->
+    <g stroke="url(#windLineGrad)" stroke-linecap="round" fill="none">
+      <!-- Linhas principais com movimento contínuo -->
+      <path class="wind-stream" stroke-width="1.6" d="M 96 116 C 92 148 76 182 48 218" />
+      <path class="wind-stream-slow" stroke-width="1.3" d="M 107 117 C 103 149 87 184 59 220" />
+      <path class="wind-stream" stroke-width="1.8" d="M 118 118 C 114 150 98 185 70 222" />
+      <path class="wind-stream-slow" stroke-width="1.2" d="M 129 119 C 125 151 109 187 82 224" />
+      <path class="wind-stream" stroke-width="1.6" d="M 140 120 C 136 152 120 188 94 226" />
+      <path class="wind-stream-slow" stroke-width="1.4" d="M 151 121 C 147 154 131 190 105 228" />
+      <path class="wind-stream" stroke-width="1.8" d="M 162 122 C 158 155 142 191 117 230" />
+      <path class="wind-stream-slow" stroke-width="1.2" d="M 173 123 C 169 156 154 193 129 232" />
+      <path class="wind-stream" stroke-width="1.6" d="M 184 124 C 180 157 165 194 140 233" />
+      <path class="wind-stream-slow" stroke-width="1.4" d="M 195 125 C 191 158 176 196 152 235" />
+      <path class="wind-stream" stroke-width="1.7" d="M 206 126 C 202 159 187 197 164 237" />
+      <path class="wind-stream-slow" stroke-width="1.3" d="M 217 127 C 213 160 198 199 175 239" />
+      <path class="wind-stream" stroke-width="1.6" d="M 228 128 C 224 162 209 200 187 241" />
+      <path class="wind-stream-slow" stroke-width="1.3" d="M 239 129 C 235 163 221 202 199 242" />
+      <path class="wind-stream" stroke-width="1.8" d="M 250 130 C 246 164 232 203 210 244" />
+      <path class="wind-stream-slow" stroke-width="1.2" d="M 261 131 C 257 165 243 205 222 246" />
+      <path class="wind-stream" stroke-width="1.6" d="M 272 132 C 268 166 254 206 234 248" />
+      <path class="wind-stream-slow" stroke-width="1.4" d="M 283 133 C 279 167 265 208 245 249" />
+      <path class="wind-stream" stroke-width="1.5" d="M 294 134 C 290 168 276 209 257 251" />
+    </g>
+  </g>
+
+  <!-- Grupo principal do Ar-Condicionado (Ligado) -->
+  <g id="ac-unit-on" filter="url(#unitShadow)">
+    <!-- Base / Chassi traseiro inferior -->
+    <path d="M 84 106 L 312 126 L 326 117 L 326 130 C 326 135 320 139 312 140 L 92 120 C 86 119 82 115 82 110 Z" fill="url(#bottomLipGrad)" />
+
+    <!-- Lateral Direita 3D -->
+    <path d="M 310 60 L 325 54 C 329 53 332 56 332 61 L 332 116 C 332 122 328 128 322 132 L 310 138 Z" fill="url(#rightSideGrad)" />
+
+    <!-- Topo 3D -->
+    <path d="M 84 44 C 88 41 94 40 100 41 L 322 53 C 326 53 328 55 325 57 L 310 62 L 80 48 Z" fill="url(#topFaceGrad)" />
+
+    <!-- Abertura da saída de ar inferior (aberta) -->
+    <path d="M 86 106 L 306 125 L 304 135 L 88 116 Z" fill="url(#ventDarkGrad)" />
+
+    <!-- Brilho azulado sutil dentro da saída de ar -->
+    <path d="M 88 109 L 304 128 L 303 134 L 88 115 Z" fill="#38BDF8" opacity="0.14" />
+
+    <!-- Aletas verticais internas visíveis na saída de ar -->
+    <g stroke="#7A8699" stroke-width="1.5" stroke-linecap="round" opacity="0.85">
+      <line x1="96" y1="108" x2="94" y2="116" />
+      <line x1="106" y1="109" x2="104" y2="117" />
+      <line x1="116" y1="110" x2="114" y2="118" />
+      <line x1="126" y1="111" x2="124" y2="119" />
+      <line x1="136" y1="111.8" x2="134" y2="119.8" />
+      <line x1="146" y1="112.7" x2="144" y2="120.7" />
+      <line x1="156" y1="113.5" x2="154" y2="121.5" />
+      <line x1="166" y1="114.4" x2="164" y2="122.4" />
+      <line x1="176" y1="115.2" x2="174" y2="123.2" />
+      <line x1="186" y1="116.1" x2="184" y2="124.1" />
+      <line x1="196" y1="117" x2="194" y2="125" />
+      <line x1="206" y1="117.8" x2="204" y2="125.8" />
+      <line x1="216" y1="118.7" x2="214" y2="126.7" />
+      <line x1="226" y1="119.5" x2="224" y2="127.5" />
+      <line x1="236" y1="120.4" x2="234" y2="128.4" />
+      <line x1="246" y1="121.2" x2="244" y2="129.2" />
+      <line x1="256" y1="122.1" x2="254" y2="130.1" />
+      <line x1="266" y1="123" x2="264" y2="131" />
+      <line x1="276" y1="123.8" x2="274" y2="131.8" />
+      <line x1="286" y1="124.7" x2="284" y2="132.7" />
+      <line x1="296" y1="125.5" x2="294" y2="133.5" />
+    </g>
+
+    <!-- Defletor / Pá aberta inclinada direcionando o vento -->
+    <path d="M 85 114 L 305 133 L 302 138 L 83 118 Z" fill="#EAEEF4" stroke="#B8C0CC" stroke-width="0.6" />
+
+    <!-- Painel Frontal Principal Curvo -->
+    <path d="M 84 44 C 80 45 78 49 78 55 L 78 100 C 78 104 81 107 86 108 L 306 127 C 310 127 313 124 313 119 L 313 65 C 313 60 310 57 305 57 L 84 44 Z" fill="url(#frontFaceGrad)" />
+
+    <!-- Linha de divisão sutil no painel frontal -->
+    <path d="M 80 101 L 311 120" stroke="#D0D5DD" stroke-width="1" opacity="0.8" />
+
+    <!-- Brilho na borda superior frontal -->
+    <path d="M 83 45.5 L 307 58.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.95" />
+
+    <!-- MOSTRADOR DE TEMPERATURA EM LED (Aceso no painel frontal) -->
+    <g id="led-panel-on" transform="translate(244, 76) skewY(4.8)">
+      <!-- Fundo escuro translúcido do visor embutido no plástico branco -->
+      <rect x="0" y="0" width="52" height="24" rx="5" fill="#131922" opacity="0.88" stroke="#D8DEE8" stroke-width="0.8" />
+
+      <!-- Brilho interno do display LED -->
+      <rect x="2" y="2" width="48" height="20" rx="4" fill="#0EA5E9" opacity="0.12" />
+
+      <!-- Temperatura em LED (editável via id="led-temperature") -->
+      <text id="led-temperature" x="21" y="16.5" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13.5" font-weight="700" fill="#E0F7FF" text-anchor="middle" letter-spacing="0.4" filter="url(#ledGlow)">21°C</text>
+
+      <!-- LED indicador de status (ligado / refrigeração) -->
+      <circle cx="44" cy="12" r="2.2" fill="#38BDF8" filter="url(#ledGlow)" />
+      <circle cx="44" cy="12" r="1.2" fill="#FFFFFF" />
+    </g>
+  </g>
+</svg>

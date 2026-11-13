@@ -1,0 +1,146 @@
+import AppKit
+import Darwin
+
+@MainActor
+struct TerminalJumpService {
+    struct ProcessSnapshot {
+        let parentProcessId: pid_t
+    }
+
+    static let shared = TerminalJumpService()
+
+    private let openURL: (URL) -> Bool
+    private let processSnapshot: @MainActor (pid_t) -> ProcessSnapshot?
+    private let bundleIdentifierForProcess: @MainActor (pid_t) -> String?
+    private let activateProcess: @MainActor (pid_t) -> Bool
+    private let activateApplication: @MainActor (String) -> Bool
+
+    init(
+        openURL: @escaping (URL) -> Bool = { NSWorkspace.shared.open($0) },
+        processSnapshot: @escaping @MainActor (pid_t) -> ProcessSnapshot? = Self.defaultProcessSnapshot,
+        bundleIdentifierForProcess: @escaping @MainActor (pid_t) -> String? = Self.defaultBundleIdentifier,
+        activateProcess: @escaping @MainActor (pid_t) -> Bool = Self.defaultActivateProcess,
+        activateApplication: @escaping @MainActor (String) -> Bool = Self.defaultActivateApplication
+    ) {
+        self.openURL = openURL
+        self.processSnapshot = processSnapshot
+        self.bundleIdentifierForProcess = bundleIdentifierForProcess
+        self.activateProcess = activateProcess
+        self.activateApplication = activateApplication
+    }
+
+    @discardableResult
+    func jump(to session: SessionData) -> Bool {
+        if let processId = Self.hostBackedProcessId(for: session),
+           let hostProcessId = terminalProcessID(hosting: processId) {
+            return activateProcess(hostProcessId)
+        }
+
+        if let hostBundleIdentifier = session.hostBundleIdentifier {
+            return activateApplication(hostBundleIdentifier)
+        }
+
+        if let url = Self.codexDesktopThreadURL(for: session) {
+            return openURL(url)
+        }
+
+        return false
+    }
+
+    func hostBundleIdentifier(hosting processId: pid_t) -> String? {
+        terminalProcessID(hosting: processId).flatMap(bundleIdentifierForProcess)
+    }
+
+    static func codexDesktopThreadURL(for session: SessionData) -> URL? {
+        guard session.provider == .codex, session.codexOrigin == .desktop else {
+            return nil
+        }
+
+        return codexDesktopThreadURL(threadId: session.rawSessionId)
+    }
+
+    nonisolated static func codexDesktopThreadURL(threadId: String) -> URL? {
+        let trimmedThreadId = threadId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedThreadId.isEmpty,
+              let encodedThreadId = trimmedThreadId.addingPercentEncoding(withAllowedCharacters: threadIDAllowedCharacters) else {
+            return nil
+        }
+
+        return URL(string: "codex://threads/\(encodedThreadId)")
+    }
+
+    private func terminalProcessID(hosting processId: pid_t) -> pid_t? {
+        var currentProcessId = processId
+        var visitedProcessIds = Set<pid_t>()
+
+        for _ in 0..<Self.maxProcessAncestryDepth {
+            guard currentProcessId > 1, !visitedProcessIds.contains(currentProcessId) else {
+                return nil
+            }
+
+            visitedProcessIds.insert(currentProcessId)
+
+            guard let snapshot = processSnapshot(currentProcessId) else {
+                return nil
+            }
+
+            if let bundleIdentifier = bundleIdentifierForProcess(currentProcessId),
+               TerminalFocusDetector.terminalBundleIds.contains(bundleIdentifier) {
+                return currentProcessId
+            }
+
+            guard snapshot.parentProcessId > 0 else {
+                return nil
+            }
+
+            currentProcessId = snapshot.parentProcessId
+        }
+
+        return nil
+    }
+
+    private static func hostBackedProcessId(for session: SessionData) -> pid_t? {
+        session.hostProcessId.flatMap { $0 > 0 ? pid_t(exactly: $0) : nil }
+    }
+
+    private nonisolated static let threadIDAllowedCharacters: CharacterSet = {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/?#[]@!$&'()*+,;=")
+        return allowed
+    }()
+
+    private nonisolated static let maxProcessAncestryDepth = 12
+
+    private nonisolated static func defaultProcessSnapshot(for processId: pid_t) -> ProcessSnapshot? {
+        guard processId > 1 else { return nil }
+
+        var info = proc_bsdshortinfo()
+        let size = MemoryLayout<proc_bsdshortinfo>.size
+        let result = proc_pidinfo(Int32(processId), Int32(PROC_PIDT_SHORTBSDINFO), 0, &info, Int32(size))
+        guard result == Int32(size), info.pbsi_ppid > 0 else {
+            return nil
+        }
+
+        return ProcessSnapshot(parentProcessId: pid_t(info.pbsi_ppid))
+    }
+
+    private static func defaultBundleIdentifier(for processId: pid_t) -> String? {
+        NSRunningApplication(processIdentifier: processId)?.bundleIdentifier
+    }
+
+    private static func defaultActivateProcess(_ processId: pid_t) -> Bool {
+        guard let app = NSRunningApplication(processIdentifier: processId) else {
+            return false
+        }
+
+        return app.activate()
+    }
+
+    private static func defaultActivateApplication(_ bundleIdentifier: String) -> Bool {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
+            return false
+        }
+
+        return app.activate()
+    }
+}
