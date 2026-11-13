@@ -113,6 +113,8 @@ Public distribution remains source-only on GitHub; there is no installer release
 
 GitHub Actions builds and tests on a hosted macOS runner. It has no access to the maintainer's Mac, signing keys, private server, or device credentials.
 
+For coarse CPU/RSS observations, use `python3 scripts/measure-app.py --help`. Compare under the same workload and warm-up conditions; these samples do not measure battery use.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for bug reports and pull requests. Please avoid including API tokens, account emails, TV pairing keys, or private network details in public issues.
 
 ## Credits and license
