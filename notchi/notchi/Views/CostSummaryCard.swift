@@ -25,16 +25,16 @@ struct CostSummaryCard: View {
                 if CostHistoryStore.shared.isScanning { ProgressView().controlSize(.mini) }
             }
             if summary.isEmpty {
-                Text("Sem uso registrado nos últimos 30 dias.")
+                Text(AppLanguage.text("Sem uso registrado nos últimos 30 dias."))
                     .font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
             } else {
                 HStack(alignment: .bottom, spacing: 14) {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("Hoje").font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
+                        Text(AppLanguage.text("Hoje")).font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
                         Text(money(summary.today)).font(.system(size: 15, weight: .bold))
                     }
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("30 dias").font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
+                        Text(AppLanguage.text("30 dias")).font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
                         Text(money(summary.window)).font(.system(size: 15, weight: .bold))
                     }
                     Spacer(minLength: 0)

@@ -32,7 +32,7 @@ struct EventDetailView: View {
                 Button {
                     if let url = URL(string: "calshow:\(event.start.timeIntervalSinceReferenceDate)") { NSWorkspace.shared.open(url) }
                 } label: {
-                    Label("Abrir no Calendário", systemImage: "calendar").font(.system(size: 12, weight: .semibold))
+                    Label(AppLanguage.text("Abrir no Calendário"), systemImage: "calendar").font(.system(size: 12, weight: .semibold))
                         .padding(.horizontal, 12).padding(.vertical, 7).background(NJP.surfaceStrong, in: Capsule())
                 }
             }
@@ -59,7 +59,7 @@ struct DayEventsListView: View {
                 Button { onSelect(event) } label: {
                     HStack(spacing: 8) {
                         Circle().fill(event.color).frame(width: 8, height: 8)
-                        Text(event.isAllDay ? "Dia todo" : event.start.formatted(.dateTime.hour().minute().locale(Locale(identifier: "pt_BR"))))
+                        Text(event.isAllDay ? AppLanguage.text("Dia todo") : event.start.formatted(.dateTime.hour().minute().locale(Locale(identifier: "pt_BR"))))
                             .font(.system(size: 11, weight: .bold)).frame(width: 52, alignment: .leading)
                         Text(event.title).font(.system(size: 12)).lineLimit(1)
                         Spacer(minLength: 0)

@@ -49,7 +49,8 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
     private var routes: [String: AppAudioRoute] = [:]
     private var timer: Timer?
     private var observers: [NSObjectProtocol] = []
-    private var visible = false
+    private var visiblePanels = 0
+    private var visible: Bool { visiblePanels > 0 }
     private var sleeping = false
     private var outputSignature = ""
     private var currentOutput: AudioObjectID?
@@ -68,8 +69,18 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
     // Called during app launch, even when the audio panel is closed.
     func start() { setEnabled(defaults.bool(forKey: Self.enabledKey)) }
 
-    func show() { visible = true; refresh(); updateTimer() }
-    func hide() { visible = false; refresh(); updateTimer() }
+    func show() { visiblePanels += 1; refresh(); updateTimer() }
+    func hide() { visiblePanels = max(0, visiblePanels - 1); refresh(); updateTimer() }
+
+    func apply(_ profile: AudioProfile) {
+        releaseRoutes()
+        levels = profile.levels.mapValues { AudioAppLevel(volume: AppAudioDSP.clamp($0.volume), muted: $0.muted) }
+        destinations = profile.destinations
+        defaults.set(destinations, forKey: "njp.audioMixer.destinations")
+        persist()
+        setEnabled(profile.enabled)
+    }
+
 
     func setEnabled(_ enabled: Bool) {
         self.enabled = enabled
@@ -116,6 +127,8 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
     }
 
     func retry(_ id: String) { errors[id] = nil; refresh() }
+    func reconnect() { releaseRoutes(); errors.removeAll(); outputSignature = ""; refresh() }
+
 
     func restoreAll() {
         releaseRoutes()
@@ -150,7 +163,11 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
                 let format = try AudioMixerHardware.value(stream, kAudioStreamPropertyVirtualFormat, initial: AudioStreamBasicDescription())
                 return "\(stream):\(format.mSampleRate):\(format.mChannelsPerFrame):\(format.mFormatFlags)"
             }
-            let signature = "\(output):\(rate):\(formats)"
+            let destinationFormats = outputs.map { choice in
+                let rate = (try? AudioMixerHardware.value(choice.device, kAudioDevicePropertyNominalSampleRate, initial: Float64(0))) ?? 0
+                return "\(choice.uid):\(choice.device):\(rate)"
+            }.sorted()
+            let signature = "\(output):\(rate):\(formats):\(destinationFormats)"
             if outputSignature != signature {
                 releaseRoutes()
                 errors.removeAll()
@@ -250,7 +267,7 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
     private func updateTimer() {
         timer?.invalidate()
         timer = nil
-        guard visible || enabled else { return }
+        guard !sleeping, visible || enabled else { return }
         timer = Timer.scheduledTimer(withTimeInterval: visible ? 2 : 8, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
@@ -261,10 +278,10 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
         guard observers.isEmpty else { return }
         let center = NSWorkspace.shared.notificationCenter
         observers.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.sleeping = true; self?.releaseRoutes() }
+            MainActor.assumeIsolated { self?.sleeping = true; self?.releaseRoutes(); self?.updateTimer() }
         })
         observers.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.sleeping = false; self?.refresh() }
+            MainActor.assumeIsolated { self?.sleeping = false; self?.reconnect(); self?.updateTimer() }
         })
     }
 
@@ -276,6 +293,7 @@ nonisolated struct AudioAppLevel: Codable, Equatable {
     func stop() {
         // Release live audio without changing the user's saved activation choice.
         enabled = false
+        visiblePanels = 0
         releaseRoutes()
         timer?.invalidate()
         timer = nil

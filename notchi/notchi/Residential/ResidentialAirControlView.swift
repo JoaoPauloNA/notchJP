@@ -4,10 +4,10 @@ enum ResidentialDevice: String, CaseIterable {
     case favorites, air, tv, scenes
     var title: String {
         switch self {
-        case .favorites: "Favoritos"
+        case .favorites: AppLanguage.text("Favoritos")
         case .air: "Ar"
         case .tv: "TV"
-        case .scenes: "Cenas"
+        case .scenes: AppLanguage.text("Cenas")
         }
     }
     var symbol: String {
@@ -139,7 +139,7 @@ struct ResidentialAirControlView: View {
                 }
                 .buttonStyle(.plain).disabled(unavailable)
                 .help(state?.power == true ? "Desligar ar-condicionado" : "Ligar ar-condicionado")
-                .accessibilityLabel("Ligar ou desligar o ar")
+                .accessibilityLabel(AppLanguage.text("Ligar ou desligar o ar"))
             }
             AirConditionerVisual(running: state?.power == true,
                                  temperature: state?.temperature, airflow: state?.airflow ?? .off)
@@ -148,7 +148,7 @@ struct ResidentialAirControlView: View {
                 Image(systemName: "thermometer.medium")
                 Text(state?.roomTemperature.map { "Ambiente  \(Int($0))°C" } ?? "Ambiente  —")
                 Spacer()
-                Text(state.map { $0.power ? "Ligado" : "Desligado" } ?? "TCL Home")
+                Text(state.map { $0.power ? AppLanguage.text("Ligado") : AppLanguage.text("Desligado") } ?? "TCL Home")
             }
             .font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.7))
         }
@@ -157,7 +157,7 @@ struct ResidentialAirControlView: View {
     private var temperatureAndMode: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Temperatura").font(.system(size: 12, weight: .medium))
+                Text(AppLanguage.text("Temperatura")).font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.primary.opacity(0.7))
                 Spacer()
                 Text(state == nil ? "—" : "\(Int(editingTemperature ? target : (state?.temperature ?? target)))°")
@@ -180,7 +180,7 @@ struct ResidentialAirControlView: View {
                 Text("32°C")
             }.font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
             if composition.isExternal {
-                Text("Modo").font(.caption).foregroundStyle(.secondary)
+                Text(AppLanguage.text("Modo")).font(.caption).foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 6) {
                     ForEach(ACMode.allCases, id: \.self) { mode in
                         Button { controller.send(.mode(mode)) } label: {
@@ -189,15 +189,15 @@ struct ResidentialAirControlView: View {
                         }.buttonStyle(.plain)
                     }
                 }.disabled(unavailable)
-                Picker("Ventilação", selection: Binding(get: { state?.fan ?? .auto }, set: { controller.send(.fan($0)) })) {
+                Picker(AppLanguage.text("Ventilação"), selection: Binding(get: { state?.fan ?? .auto }, set: { controller.send(.fan($0)) })) {
                     ForEach(ACFan.allCases, id: \.self) { Text($0.label).tag($0) }
                 }.pickerStyle(.segmented).labelsHidden().controlSize(.small).disabled(unavailable)
             } else {
-            Picker("Modo", selection: Binding(get: { state?.mode ?? .cool }, set: { controller.send(.mode($0)) })) {
+            Picker(AppLanguage.text("Modo"), selection: Binding(get: { state?.mode ?? .cool }, set: { controller.send(.mode($0)) })) {
                 ForEach(ACMode.allCases, id: \.self) { Text($0.label).tag($0) }
             }
             .disabled(unavailable)
-            Picker("Ventilação", selection: Binding(get: { state?.fan ?? .auto }, set: { controller.send(.fan($0)) })) {
+            Picker(AppLanguage.text("Ventilação"), selection: Binding(get: { state?.fan ?? .auto }, set: { controller.send(.fan($0)) })) {
                 ForEach(ACFan.allCases, id: \.self) { Text($0.label).tag($0) }
             }
             .disabled(unavailable)            }
@@ -208,7 +208,7 @@ struct ResidentialAirControlView: View {
 
     private var comfort: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("Direção do vento").font(.system(size: 12, weight: .medium))
+            Text(AppLanguage.text("Direção do vento")).font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.primary.opacity(0.7))
             HStack(spacing: 12) {
                 directionMenu(vertical: true)
@@ -217,13 +217,13 @@ struct ResidentialAirControlView: View {
             HStack {
                 Toggle("Eco", isOn: Binding(get: { state?.eco ?? false }, set: { controller.send(.eco($0)) }))
                 Spacer(minLength: 14)
-                Toggle("Dormir", isOn: Binding(get: { state?.sleep ?? false }, set: { controller.send(.sleep($0)) }))
+                Toggle(AppLanguage.text("Dormir"), isOn: Binding(get: { state?.sleep ?? false }, set: { controller.send(.sleep($0)) }))
             }
             .toggleStyle(.switch).controlSize(.small).disabled(unavailable)
-            Toggle("Brisa suave", isOn: Binding(get: { state?.breeze ?? false }, set: { controller.send(.breeze($0)) }))
+            Toggle(AppLanguage.text("Brisa suave"), isOn: Binding(get: { state?.breeze ?? false }, set: { controller.send(.breeze($0)) }))
                 .toggleStyle(.switch).controlSize(.small)
                 .disabled(unavailable || state?.breeze == nil || (state?.mode != .cool && state?.breeze != true))
-                .help(state?.breeze == nil ? "Indisponível neste aparelho" : "Disponível no modo Resfriar")
+                .help(state?.breeze == nil ? AppLanguage.text("Indisponível neste aparelho") : AppLanguage.text("Disponível no modo Resfriar"))
         }
         .font(.system(size: 12))
     }
@@ -236,7 +236,7 @@ struct ResidentialAirControlView: View {
                                   direction: (vertical ? state?.verticalDirection?.rawValue : state?.horizontalDirection?.rawValue) ?? 0)
                     .frame(width: 54, height: 54)
                 Text(vertical ? "Vertical" : "Horizontal").font(.system(size: 11, weight: .medium))
-                Text((vertical ? state?.verticalDirection?.label : state?.horizontalDirection?.label) ?? "Indisponível")
+                Text((vertical ? state?.verticalDirection?.label : state?.horizontalDirection?.label) ?? AppLanguage.text("Indisponível"))
                     .font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7)).lineLimit(1)
             }
             .frame(maxWidth: .infinity).padding(.vertical, 8)
@@ -268,7 +268,7 @@ struct ResidentialAirControlView: View {
             .buttonStyle(.plain).padding(12).frame(width: 215).preferredColorScheme(.dark)
         }
         .disabled(unavailable || (vertical ? state?.verticalDirection == nil : state?.horizontalDirection == nil))
-        .accessibilityLabel(vertical ? "Direção vertical" : "Direção horizontal")
+        .accessibilityLabel(vertical ? AppLanguage.text("Direção vertical") : AppLanguage.text("Direção horizontal"))
     }
 
     private func directionLabel(_ title: String, selected: Bool) -> some View {
@@ -291,7 +291,7 @@ struct ResidentialAirControlView: View {
                 .background(NJP.surfaceStrong, in: Circle())
         }
         .buttonStyle(.plain).disabled(unavailable)
-        .accessibilityLabel(delta > 0 ? "Aumentar temperatura" : "Diminuir temperatura")
+        .accessibilityLabel(delta > 0 ? AppLanguage.text("Aumentar temperatura") : AppLanguage.text("Diminuir temperatura"))
     }
 
     private var footer: some View {
@@ -301,13 +301,13 @@ struct ResidentialAirControlView: View {
                 Circle().fill(controller.error == nil && state != nil ? NJP.good : .white.opacity(0.3))
                     .frame(width: 6, height: 6)
             }
-            Text(controller.busy ? "Atualizando…" : controller.error ?? (state == nil ? "Conecte sua conta TCL Home para controlar o ar." : "Conectado à TCL Home"))
+            Text(controller.busy ? "Atualizando…" : controller.error ?? (state == nil ? AppLanguage.text("Conecte sua conta TCL Home para controlar o ar.") : AppLanguage.text("Conectado à TCL Home")))
                 .font(.system(size: 11)).foregroundStyle(controller.error == nil ? .white.opacity(0.55) : .orange)
                 .lineLimit(2).help(controller.error ?? "")
             Spacer(minLength: 12)
             Button { Task { await controller.refresh() } } label: {
                 Image(systemName: "arrow.clockwise")
-            }.disabled(controller.busy).help("Atualizar estado").accessibilityLabel("Atualizar estado")
+            }.disabled(controller.busy).help(AppLanguage.text("Atualizar estado")).accessibilityLabel(AppLanguage.text("Atualizar estado"))
         }
         .buttonStyle(.plain).font(.system(size: 11, weight: .medium))
         .frame(minHeight: 22)

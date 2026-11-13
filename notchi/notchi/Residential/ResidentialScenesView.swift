@@ -31,7 +31,7 @@ struct ResidentialScene: Identifiable {
             await air.sendAndWait(.eco(true), toEach: targets)
         },
         // The air conditioner is never switched off by a scene (see Controles/ArVPS/README.md).
-        ResidentialScene(id: "off", title: "Desligar a TV", subtitle: "Só a TV; o ar continua como está", symbol: "tv.slash") { _, tv, _ in
+        ResidentialScene(id: "off", title: AppLanguage.text("Desligar a TV"), subtitle: "Só a TV; o ar continua como está", symbol: "tv.slash") { _, tv, _ in
             if let id = tv.selectedDevice?.id { _ = await tv.performSceneAction(.off, input: nil, expectedID: id) }
         },
     ]

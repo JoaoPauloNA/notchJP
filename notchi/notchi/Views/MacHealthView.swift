@@ -72,15 +72,15 @@ struct MacHealthView: View {
                 color: low ? NJP.bad : tone(disk.usedFraction, warn: 0.8, bad: 0.92),
                 label: "\(Int((disk.usedFraction * 100).rounded()))%",
                 detail: "\(disk.availableGB) GB livres de \(disk.totalGB) GB",
-                extra: low ? "Pouco espaço · toque" : "Toque para gerenciar") }
-                .buttonStyle(.plain).help("Abrir o armazenamento do Mac"))
+                extra: low ? AppLanguage.text("Pouco espaço · toque") : "Toque para gerenciar") }
+                .buttonStyle(.plain).help(AppLanguage.text("Abrir o armazenamento do Mac")))
         }
         return AnyView(card(title: "Disco", symbol: "internaldrive", ring: 0, color: NJP.good, label: "—", detail: "Lendo…"))
     }
 
     private var memoryCard: some View {
         let fraction = health.memoryTotal > 0 ? Double(health.memoryUsed) / Double(health.memoryTotal) : 0
-        return card(title: "Memória", symbol: "memorychip", ring: fraction,
+        return card(title: AppLanguage.text("Memória"), symbol: "memorychip", ring: fraction,
                     color: tone(fraction, warn: 0.75, bad: 0.9),
                     label: health.memoryUsed == 0 ? "—" : "\(Int((fraction * 100).rounded()))%",
                     detail: "\(gb(health.memoryUsed)) de \(gb(health.memoryTotal)) GB")
@@ -91,7 +91,7 @@ struct MacHealthView: View {
         return card(title: "Processador", symbol: "cpu", ring: usage ?? 0,
                     color: tone(usage ?? 0, warn: 0.6, bad: 0.85),
                     label: usage.map { "\(Int(($0 * 100).rounded()))%" } ?? "—",
-                    detail: usage == nil ? "Medindo…" : "Uso dos núcleos",
+                    detail: usage == nil ? "Medindo…" : AppLanguage.text("Uso dos núcleos"),
                     extra: health.topProcess.map { "Mais ativo: \($0.name)" })
     }
 
@@ -102,10 +102,10 @@ struct MacHealthView: View {
             return AnyView(card(
                 title: "Bateria", symbol: battery.charging ? "battery.100.bolt" : "battery.75",
                 ring: level, color: color, label: "\(battery.percent)%",
-                detail: battery.charging ? "Carregando" : (battery.onACPower ? "Na tomada" : "Na bateria")))
+                detail: battery.charging ? "Carregando" : (battery.onACPower ? AppLanguage.text("Na tomada") : AppLanguage.text("Na bateria"))))
         }
         return AnyView(card(title: "Energia", symbol: "powerplug", ring: 1, color: NJP.good, label: "AC",
-                            detail: "Este Mac não tem bateria"))
+                            detail: AppLanguage.text("Este Mac não tem bateria")))
     }
 
     private var networkCard: some View {
@@ -120,7 +120,7 @@ struct MacHealthView: View {
         let device = health.bluetooth.first { $0.percent != nil } ?? health.bluetooth.first
         guard let device else {
             return card(title: "Bluetooth", symbol: "dot.radiowaves.left.and.right", ring: 0, color: NJP.good, label: "—",
-                        detail: "Nenhum acessório conectado")
+                        detail: AppLanguage.text("Nenhum acessório conectado"))
         }
         let level = device.percent ?? 0
         let color: Color = level <= 15 ? NJP.bad : (level <= 30 ? NJP.warn : NJP.good)
@@ -134,7 +134,7 @@ struct MacHealthView: View {
     private var privacyStrip: some View {
         HStack(spacing: 10) {
             indicator("Microfone", symbol: "mic.fill", active: health.micInUse)
-            indicator("Câmera", symbol: "video.fill", active: health.cameraInUse)
+            indicator(AppLanguage.text("Câmera"), symbol: "video.fill", active: health.cameraInUse)
             Spacer(minLength: 0)
         }
     }
@@ -143,7 +143,7 @@ struct MacHealthView: View {
         HStack(spacing: 6) {
             Circle().fill(active ? NJP.bad : NJP.good).frame(width: 7, height: 7)
             Image(systemName: symbol).font(.system(size: 11))
-            Text("\(title): \(active ? "em uso" : "livre")").font(.system(size: 11, weight: .semibold))
+            Text("\(title): \(active ? AppLanguage.text("em uso") : "livre")").font(.system(size: 11, weight: .semibold))
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
         .background(active ? NJP.bad.opacity(0.18) : NJP.surface, in: Capsule())

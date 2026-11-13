@@ -179,7 +179,7 @@ struct EmotionAnalysisSettingsView: View {
             Spacer(minLength: 12)
 
             apiKeyStatusView
-            Button("Autorizar chave salva") {
+            Button(AppLanguage.text("Autorizar chave salva")) {
                 let key = provider == .claude
                     ? KeychainManager.getAnthropicApiKey(allowInteraction: true)
                     : KeychainManager.getOpenAIApiKey(allowInteraction: true)

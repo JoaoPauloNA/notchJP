@@ -4,11 +4,11 @@ import Combine
 
 enum ACMode: String, CaseIterable, Sendable {
     case cool, dry, fan, heat, auto
-    var label: String { switch self { case .cool: "Resfriar"; case .dry: "Desumidificar"; case .fan: "Ventilar"; case .heat: "Aquecer"; case .auto: "Automático" } }
+    var label: String { switch self { case .cool: AppLanguage.text("Resfriar"); case .dry: AppLanguage.text("Desumidificar"); case .fan: AppLanguage.text("Ventilar"); case .heat: AppLanguage.text("Aquecer"); case .auto: AppLanguage.text("Automático") } }
 }
 enum ACFan: String, CaseIterable, Sendable {
     case auto, low, medium, high
-    var label: String { switch self { case .auto: "Automática"; case .low: "Baixa"; case .medium: "Média"; case .high: "Alta" } }
+    var label: String { switch self { case .auto: AppLanguage.text("Automática"); case .low: AppLanguage.text("Baixa"); case .medium: AppLanguage.text("Média"); case .high: AppLanguage.text("Alta") } }
 }
 enum ACAirflow: String, CaseIterable, Sendable {
     case off, vertical, horizontal, both
@@ -62,7 +62,7 @@ struct ACState: Sendable {
     var fan: ACFan
     var sleep: Bool
     var airflow: ACAirflow
-    var deviceName: String = "Ar-condicionado"
+    var deviceName: String = AppLanguage.text("Ar-condicionado")
     var verticalDirection: ACVerticalDirection? = nil
     var horizontalDirection: ACHorizontalDirection? = nil
     var breeze: Bool? = nil
@@ -122,7 +122,7 @@ extension ACBackend {
     }
 
     var originalSelectedName: String {
-        selectedDeviceID.flatMap { device($0)?.name } ?? state?.deviceName ?? "Ar-condicionado"
+        selectedDeviceID.flatMap { device($0)?.name } ?? state?.deviceName ?? AppLanguage.text("Ar-condicionado")
     }
 
     var selectedDisplayName: String {
@@ -204,7 +204,7 @@ extension ACBackend {
         await refreshDevices()
         for device in devices where device.id != selectedDeviceID {
             guard !busy else { return }
-            guard device.online else { deviceErrors[device.id] = "Desconectado"; continue }
+            guard device.online else { deviceErrors[device.id] = AppLanguage.text("Desconectado"); continue }
             busy = true
             do { store(try await backend.readState(deviceID: device.id), for: device.id) }
             catch { fail(error, for: device.id) }

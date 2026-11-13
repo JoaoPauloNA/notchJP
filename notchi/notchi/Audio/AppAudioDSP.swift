@@ -3,7 +3,7 @@ import Synchronization
 
 /// The HAL callback owns `currentGain`; the UI only writes the atomic target.
 /// No locks, allocation, file access or dispatch from the audio thread.
-nonisolated final class AppAudioDSP: @unchecked Sendable {
+nonisolated final class AppAudioDSP: AudioProcessing, @unchecked Sendable {
     private let peak = Atomic<UInt32>(0)
     func takePeak() -> Float { Float(bitPattern: peak.exchange(0, ordering: .relaxed)) }
     private let target: Atomic<UInt32>

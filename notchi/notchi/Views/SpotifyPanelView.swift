@@ -28,16 +28,16 @@ struct SpotifyPanelView: View {
                     Button { SpotifyService.command("previous track", state: state) } label: {
                         Image(systemName: "backward.end.fill").frame(width: 34, height: 34).background(NJP.surfaceStrong, in: Circle())
                     }
-                    .help("Faixa anterior")
+                    .help(AppLanguage.text("Faixa anterior"))
                     Button { SpotifyService.command("playpause", state: state) } label: {
                         Image(systemName: state.playing ? "pause.fill" : "play.fill").font(.system(size: 18))
                             .frame(width: 42, height: 42).background(spotifyTint, in: Circle())
                             .foregroundStyle(playButtonForeground)
-                    }.help(state.playing ? "Pausar" : "Reproduzir")
+                    }.help(state.playing ? AppLanguage.text("Pausar") : AppLanguage.text("Reproduzir"))
                     Button { SpotifyService.command("next track", state: state) } label: {
                         Image(systemName: "forward.end.fill").frame(width: 34, height: 34).background(NJP.surfaceStrong, in: Circle())
                     }
-                    .help("Próxima faixa")
+                    .help(AppLanguage.text("Próxima faixa"))
                     if !composition.isVertical { Spacer(minLength: 8); albumButton }
                 }.font(.system(size: 14))
                     .frame(maxWidth: .infinity, alignment: composition.isVertical ? .center : .leading)
@@ -45,8 +45,8 @@ struct SpotifyPanelView: View {
                 if let status = state.spotifyStatus {
                     HStack {
                         Text(status).font(.system(size: 10)).foregroundStyle(NJP.warn).lineLimit(2)
-                        Button("Reconectar") { SpotifyService.refresh(state) }
-                        Button("Permissões") {
+                        Button(AppLanguage.text("Reconectar")) { SpotifyService.refresh(state) }
+                        Button(AppLanguage.text("Permissões")) {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") { NSWorkspace.shared.open(url) }
                         }
                     }
@@ -64,7 +64,7 @@ struct SpotifyPanelView: View {
                         .labelsHidden()
                         .frame(minWidth: 0, maxWidth: .infinity)
                         .tint(spotifyTint)
-                        .help("Posição da música")
+                        .help(AppLanguage.text("Posição da música"))
                         HStack {
                             Text(formatTime(state.position))
                             Spacer()
@@ -95,7 +95,7 @@ struct SpotifyPanelView: View {
                             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
                         }
                     } label: {
-                        HStack(spacing: 4) { Text("Escolher álbum"); Image(systemName: "arrow.up.right") }
+                        HStack(spacing: 4) { Text(AppLanguage.text("Escolher álbum")); Image(systemName: "arrow.up.right") }
                             .font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.75))
                             .padding(.horizontal, 12).padding(.vertical, 8)
                             .background(NJP.surfaceStrong, in: Capsule())

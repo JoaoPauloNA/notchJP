@@ -4,6 +4,7 @@ import ApplicationServices
 
 struct DashboardSettingsView: View {
     @ObservedObject var state: NotchState
+    @AppStorage(AppLanguage.key) private var language = "pt-BR"
     @State private var search = ""
     @AppStorage("njp.liquidGlass") private var liquidGlass = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -11,7 +12,7 @@ struct DashboardSettingsView: View {
     @AppStorage(NJPSettings.accentIndexKey) private var accentIndex = 0
 
     enum SettingsSection: String, CaseIterable, Identifiable {
-        case appearance, panel, displays, accounts, agents, dictation, air, tv, about
+        case appearance, panel, displays, accounts, agents, dictation, air, tv, diagnostics, about
         var id: Self { self }
 
         static var initial: SettingsSection {
@@ -25,15 +26,16 @@ struct DashboardSettingsView: View {
 
         var title: String {
             switch self {
-            case .appearance: "Aparência"
-            case .panel: "Painel"
-            case .displays: "Telas"
-            case .accounts: "Contas e APIs"
-            case .agents: "Agentes"
-            case .dictation: "Ditado"
-            case .air: "Ar-condicionado"
+            case .appearance: AppLanguage.text("Aparência")
+            case .panel: AppLanguage.text("Painel")
+            case .displays: AppLanguage.text("Telas")
+            case .accounts: AppLanguage.text("Contas e APIs")
+            case .agents: AppLanguage.text("Agentes")
+            case .dictation: AppLanguage.text("Ditado")
+            case .air: AppLanguage.text("Ar-condicionado")
             case .tv: "TV LG"
-            case .about: "Sobre"
+            case .diagnostics: AppLanguage.text("Diagnóstico")
+            case .about: AppLanguage.text("Sobre")
             }
         }
         var symbol: String {
@@ -46,6 +48,7 @@ struct DashboardSettingsView: View {
             case .dictation: "mic"
             case .air: "air.conditioner.horizontal"
             case .tv: "tv"
+            case .diagnostics: "stethoscope"
             case .about: "info.circle"
             }
         }
@@ -64,7 +67,7 @@ struct DashboardSettingsView: View {
                 .padding(.bottom, 18)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("notchJP")
-                TextField("Buscar ajuste", text: $search).textFieldStyle(.roundedBorder).padding(.bottom, 10)
+                TextField(AppLanguage.text("Buscar ajuste"), text: $search).textFieldStyle(.roundedBorder).padding(.bottom, 10)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(Array(settingsGroups.enumerated()), id: \.offset) { _, group in
@@ -89,7 +92,7 @@ struct DashboardSettingsView: View {
                 HStack {
                     Text(selection.title).font(.system(size: 15, weight: .semibold))
                     Spacer()
-                    Text(liquidGlass && !reduceTransparency ? "Liquid Glass ligado" : "Material sólido").font(.caption).foregroundStyle(.secondary)
+                    Text(liquidGlass && !reduceTransparency ? AppLanguage.text("Liquid Glass ligado") : AppLanguage.text("Material sólido")).font(.caption).foregroundStyle(.secondary)
                 }.padding(.horizontal, 24).frame(height: 52)
                 Divider()
             ScrollView {
@@ -102,6 +105,7 @@ struct DashboardSettingsView: View {
                 case .dictation: NJPDictationSettingsView()
                 case .air: ACAccountSettingsView(controller: state.airController)
                 case .tv: ResidentialTVSettingsView(controller: state.tvController)
+                case .diagnostics: AppDiagnosticsView(state: state)
                 case .about: NJPAboutSettingsView()
                 }
             }
@@ -113,13 +117,14 @@ struct DashboardSettingsView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .preferredColorScheme(.dark)
         .tint(NJP.accent)
-        .environment(\.locale, Locale(identifier: "pt_BR"))
-        .navigationTitle("Configurações do notchJP")
+        .environment(\.locale, AppLanguage.locale)
+        .id(language)
+        .navigationTitle(AppLanguage.text("Configurações do notchJP"))
     }
 
     private var settingsGroups: [(String, [SettingsSection])] {
-        [("Painel", [.appearance, .panel, .displays]), ("Casa", [.air, .tv]),
-         ("Integrações", [.accounts, .agents, .dictation]), ("Aplicativo", [.about])]
+        [(AppLanguage.text("Painel"), [.appearance, .panel, .displays]), (AppLanguage.text("Casa"), [.air, .tv]),
+         (AppLanguage.text("Integrações"), [.accounts, .agents, .dictation]), (AppLanguage.text("Aplicativo"), [.diagnostics, .about])]
     }
     private func settingsButton(_ section: SettingsSection) -> some View {
         Button { selection = section } label: {
@@ -138,18 +143,18 @@ struct DashboardSettingsView: View {
 
     private var accounts: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Contas e APIs").font(.title2.weight(.semibold))
-            Text("Gerencie as contas e chaves usadas para consultar seus gastos e saldos.")
+            Text(AppLanguage.text("Contas e APIs")).font(.title2.weight(.semibold))
+            Text(AppLanguage.text("Gerencie as contas e chaves usadas para consultar seus gastos e saldos."))
                 .font(.callout).foregroundStyle(.secondary)
             OpenAICreditSettingsCard(state: state)
             ForEach(DashboardAPIProvider.allCases) { provider in
                 DashboardAPISettingsCard(provider: provider, state: state)
             }
-            Text("As chaves são guardadas no Chaves do macOS. Para trocar uma chave, preencha o campo e salve.")
+            Text(AppLanguage.text("As chaves são guardadas no Chaves do macOS. Para trocar uma chave, preencha o campo e salve."))
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
-            Text("Contas dos assistentes").font(.headline)
-            Text("Codex, Claude e AGY usam as contas já conectadas nos respectivos aplicativos ou CLIs. Para mudar a conta de uma cota, faça a troca no assistente correspondente.")
+            Text(AppLanguage.text("Contas dos assistentes")).font(.headline)
+            Text(AppLanguage.text("Codex, Claude e AGY usam as contas já conectadas nos respectivos aplicativos ou CLIs. Para mudar a conta de uma cota, faça a troca no assistente correspondente."))
                 .font(.callout).foregroundStyle(.secondary)
         }
         .padding(28).frame(maxWidth: .infinity, alignment: .leading)
@@ -167,8 +172,8 @@ enum DashboardAPIProvider: String, CaseIterable, Identifiable {
     }
     var keyPlaceholder: String {
         switch self {
-        case .router: "Chave de gerenciamento"
-        case .runpod: "Chave da API"
+        case .router: AppLanguage.text("Chave de gerenciamento")
+        case .runpod: AppLanguage.text("Chave da API")
         }
     }
     var service: String {
@@ -253,7 +258,7 @@ private struct DashboardAPISettingsCard: View {
             SecureField(provider.keyPlaceholder, text: $key)
                 .accessibilityLabel("Chave " + provider.title)
             if provider == .router {
-                Link("Abrir chaves de gerenciamento", destination: URL(string: "https://openrouter.ai/settings/management-keys")!)
+                Link(AppLanguage.text("Abrir chaves de gerenciamento"), destination: URL(string: "https://openrouter.ai/settings/management-keys")!)
                     .font(.caption)
             }
             HStack {
@@ -262,7 +267,7 @@ private struct DashboardAPISettingsCard: View {
                     Text("Conta salva: " + provider.label(in: state)).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button("Autorizar chave salva") {
+                Button(AppLanguage.text("Autorizar chave salva")) {
                     let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
                         kSecAttrService as String: provider.service, kSecAttrAccount as String: provider.keyAccount,
                         kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
@@ -271,7 +276,7 @@ private struct DashboardAPISettingsCard: View {
                     if status == errSecSuccess { saveError = nil; Task { await provider.refresh(state) } }
                     else { saveError = "Não foi possível autorizar a chave salva (\(status))." }
                 }.disabled(saving)
-                Button("Salvar") { save() }
+                Button(AppLanguage.text("Salvar")) { save() }
                     .disabled(saving || label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                               || key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -310,10 +315,10 @@ private struct OpenAICreditSettingsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("OpenAI · saldo de créditos").font(.headline)
-            Text("Lê o saldo exibido na página da OpenAI selecionada no Safari. A chave de API do projeto não é usada nesta consulta.")
+            Text(AppLanguage.text("OpenAI · saldo de créditos")).font(.headline)
+            Text(AppLanguage.text("Lê o saldo exibido na página da OpenAI selecionada no Safari. A chave de API do projeto não é usada nesta consulta."))
                 .font(.callout).foregroundStyle(.secondary)
-            TextField("Nome da organização", text: $state.openAIAccount)
+            TextField(AppLanguage.text("Nome da organização"), text: $state.openAIAccount)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: state.openAIAccount) { _, label in
                     UserDefaults.standard.set(label, forKey: "openAIOrganizationLabel")
@@ -328,17 +333,17 @@ private struct OpenAICreditSettingsCard: View {
             }
             Text(balance.status).font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Para ler o valor, o macOS exige Acessibilidade para o notchJP. O app consulta apenas o saldo na página da OpenAI, sem ler chaves, cookies ou senhas.")
+            Text(AppLanguage.text("Para ler o valor, o macOS exige Acessibilidade para o notchJP. O app consulta apenas o saldo na página da OpenAI, sem ler chaves, cookies ou senhas."))
                 .font(.caption).foregroundStyle(.secondary)
             HStack {
-                Button("Abrir painel no Safari") {
+                Button(AppLanguage.text("Abrir painel no Safari")) {
                     guard let safari = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") else { return }
                     NSWorkspace.shared.open([URL(string: "https://platform.openai.com/home")!],
                                             withApplicationAt: safari, configuration: NSWorkspace.OpenConfiguration())
                 }
                 Spacer()
                 if balance.isRefreshing { ProgressView().controlSize(.small) }
-                Button(balance.enabled ? "Atualizar saldo" : "Conectar leitura do saldo") {
+                Button(balance.enabled ? AppLanguage.text("Atualizar saldo") : AppLanguage.text("Conectar leitura do saldo")) {
                     balance.enable()
                     if !AXIsProcessTrusted() {
                         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
@@ -349,7 +354,7 @@ private struct OpenAICreditSettingsCard: View {
                 }.disabled(balance.isRefreshing)
             }
             if balance.enabled {
-                Button("Desativar leitura do Safari") { balance.disable() }
+                Button(AppLanguage.text("Desativar leitura do Safari")) { balance.disable() }
                     .font(.caption).buttonStyle(.plain).foregroundStyle(.secondary)
             }
         }
@@ -363,11 +368,11 @@ private struct OpenAICreditSettingsCard: View {
 
 private struct ACSettingsConnection: View {
     @ObservedObject var controller: ACController
-    var body: some View { Circle().fill(controller.state != nil && controller.error == nil ? Color.green : .clear).frame(width: 6, height: 6).accessibilityLabel(controller.state == nil ? "Desconectado" : "Conectado") }
+    var body: some View { Circle().fill(controller.state != nil && controller.error == nil ? Color.green : .clear).frame(width: 6, height: 6).accessibilityLabel(controller.state == nil ? AppLanguage.text("Desconectado") : AppLanguage.text("Conectado")) }
 }
 private struct TVSettingsConnection: View {
     @ObservedObject var controller: LGTVController
-    var body: some View { Circle().fill(controller.connected ? Color.green : .clear).frame(width: 6, height: 6).accessibilityLabel(controller.connected ? "Conectada" : "Desconectada") }
+    var body: some View { Circle().fill(controller.connected ? Color.green : .clear).frame(width: 6, height: 6).accessibilityLabel(controller.connected ? AppLanguage.text("Conectada") : AppLanguage.text("Desconectada")) }
 }
 private struct SettingsSidebarMaterial: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {

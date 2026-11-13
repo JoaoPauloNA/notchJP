@@ -24,7 +24,7 @@ cd notchJP
 ./scripts/build-local-app.sh
 ```
 
-O aplicativo fica em `build/public/Build/Products/Release/notchJP.app`. O script não instala o app. Esta primeira publicação oferece o fonte, sem instalador público notarizado e sem canal público de atualização automática. A interface está principalmente em português do Brasil.
+O aplicativo fica em `build/public/Build/Products/Release/notchJP.app`. O script não instala o app. Esta primeira publicação oferece o fonte, sem instalador público notarizado e sem canal público de atualização automática. O painel permite escolher português do Brasil ou inglês em Aparência → Idioma.
 
 ## Edições pública e privada
 
@@ -36,6 +36,12 @@ A **edição privada** do mantenedor continua em outro repositório, com atualiz
 
 As integrações LG e TCL são experimentais e não oficiais. Modelos, firmware, região e serviços do fabricante podem afetar o funcionamento. A TV exige pareamento na rede local; ligar por Wake-on-LAN depende do aparelho. O ar usa a conta TCL Home e os serviços de nuvem da TCL. Credenciais e configurações pessoais não acompanham o repositório.
 
-Temporizadores exigem o app aberto e o Mac acordado. Integração com Siri/HomeKit ainda não está implementada. O mixer exige formatos e frequências compatíveis entre origem e destino.
+Temporizadores exigem o app aberto e o Mac acordado. As ações no Atalhos do Mac controlam ar, TV LG e cenas; veja [como usar com Siri](docs/SIRI.md). HomeKit e ponte para iPhone/HomePod não estão incluídos. O mixer converte PCM Float32 mono/estéreo de 8–192 kHz; rotas Bluetooth/USB precisam de validação adicional em hardware.
 
 Leia [privacidade](PRIVACY.md), [contribuição](CONTRIBUTING.md) e [licença](LICENSE). Não confunda os downloads do Notchi original com esta versão.
+
+## Novidades da versão 1.4
+
+Perfis de áudio salvos e renomeáveis, guia inicial reabrível, idioma do painel selecionável, ações de recuperação e exportação de diagnóstico sem contas, tokens, endereços ou nomes de aparelhos. Consultas de serviços foram separadas da detecção do mouse e os temporizadores residenciais só agendam trabalho enquanto houver uma ação pendente. Algumas mensagens das integrações continuam no idioma original.
+
+A distribuição pública permanece somente pelo fonte no GitHub, sem instalador nesta etapa.

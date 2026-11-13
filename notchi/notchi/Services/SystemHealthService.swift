@@ -54,6 +54,7 @@ final class SystemHealthService: ObservableObject {
     private var lastBluetoothRead = Date.distantPast
 
     private var previousTicks: (user: UInt32, system: UInt32, idle: UInt32, nice: UInt32)?
+    private var liveViewCount = 0
     private var liveTimer: Timer?
     private var backgroundTimer: Timer?
 
@@ -74,6 +75,7 @@ final class SystemHealthService: ObservableObject {
     }
 
     func startLive() {
+        liveViewCount += 1
         guard liveTimer == nil else { return }
         refreshLive()
         liveTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
@@ -82,6 +84,8 @@ final class SystemHealthService: ObservableObject {
     }
 
     func stopLive() {
+        liveViewCount = max(0, liveViewCount - 1)
+        guard liveViewCount == 0 else { return }
         liveTimer?.invalidate()
         liveTimer = nil
         previousTicks = nil

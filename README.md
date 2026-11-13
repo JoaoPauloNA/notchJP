@@ -16,7 +16,7 @@
 
 notchJP is a free, open-source macOS companion based on [Notchi by Ruban](https://github.com/sk-ruban/notchi). It extends the original agent companion with Spotify playback, per-app audio mixing, panels on external displays, productivity tools, and optional home device controls.
 
-**Status: early public source release.** The current interface is primarily Brazilian Portuguese. This repository does not provide a notarized installer or a public automatic-update feed. Build instructions are below; a ready-to-install public binary is not available yet.
+**Status: early public source release.** The dashboard supports Brazilian Portuguese and English (Appearance → Language). This repository does not provide a notarized installer or a public automatic-update feed. Build instructions are below; a ready-to-install public binary is not available yet.
 
 ## Features
 
@@ -84,7 +84,7 @@ Sign in using **your own TCL Home account** and choose the appropriate region. A
 
 ### Scenes and timers
 
-Save combinations of supported device actions and assign keyboard shortcuts. Timers require the app to remain open and the Mac awake. Missed actions are not replayed after sleep. Siri and HomeKit integration are **not implemented** in this release.
+Save combinations of supported device actions and assign keyboard shortcuts. Timers require the app to remain open and the Mac awake. Missed actions are not replayed after sleep. Mac Shortcuts actions can control the air conditioner, LG TV and saved scenes; name a shortcut to call it through Siri. See [Siri setup](docs/SIRI.md). iPhone/HomePod bridging and HomeKit are not included.
 
 ## Privacy and permissions
 
@@ -92,12 +92,18 @@ See [PRIVACY.md](PRIVACY.md) for a feature-by-feature overview. Your credentials
 
 The audio mixer processes audio in memory without recording it to a file. Dictation is a separate feature and may record/transcribe audio according to its selected backend. Optional cloud integrations communicate with their respective providers; this is not an entirely offline app.
 
+## New in 1.4
+
+Save, apply, rename and delete audio profiles; reconnect audio from Diagnostics; export a status-only JSON report without account/device names or credentials. A first-launch guide explains optional integrations and can be reopened from About. Background service refreshes are separated from pointer tracking, and home timers run only while an action is scheduled.
+
+Public distribution remains source-only on GitHub; there is no installer release planned for this phase.
+
 ## Known limitations
 
-- Audio routing currently requires compatible source/destination formats and sample rates. Automatic format conversion is not implemented; unsupported routes report an error.
+- Audio conversion supports Float32 mono/stereo at 8–192 kHz. Multi-stream and other formats report an error. Bluetooth/USB routes and wake recovery need broader hardware validation.
 - The public source edition has automatic updates disabled. Update the source and rebuild.
 - Home integrations have been tested on a limited set of devices. Reports with model, firmware, region, and sanitized logs are welcome.
-- Most custom dashboard labels are in Brazilian Portuguese; English localization is a contribution opportunity.
+- Dashboard language is selectable; some integration errors and Shortcuts action names still use their original language.
 
 ## Development
 

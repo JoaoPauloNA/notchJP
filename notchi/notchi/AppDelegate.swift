@@ -33,7 +33,7 @@ final class NotchSharedContent: ObservableObject {
     // Avoid Swift isolated-deinit back-deployment crashes (swiftlang/swift#88036).
     nonisolated deinit {}
     @Published var spotifyStatus: String?
-    @Published var track = "Spotify não está aberto"
+    @Published var track = AppLanguage.text("Spotify não está aberto")
     @Published var artist = ""
     @Published var album = ""
     @Published var artworkURL = ""
@@ -47,9 +47,9 @@ final class NotchSharedContent: ObservableObject {
     @Published var openAIAccount = UserDefaults.standard.string(forKey: "openAIOrganizationLabel") ?? ""
     @Published var runpodAccount = UserDefaults.standard.string(forKey: "runpodAccountLabel") ?? ""
     @Published var runpodBalance: Double?
-    @Published var runpodStatus = "Configurar chave"
+    @Published var runpodStatus = AppLanguage.text("Configurar chave")
     @Published var routerBalance: Double?
-    @Published var routerStatus = "Configurar chave"
+    @Published var routerStatus = AppLanguage.text("Configurar chave")
     @Published var routerBalanceStale = false
     @Published var alert: NotchAlert?
 }
@@ -132,6 +132,7 @@ private struct BlackNotchView: View {
     @AppStorage("njp.liquidGlass") private var liquidGlass = false
     @AppStorage("njp.glassContrast") private var glassContrast = false
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @AppStorage(AppLanguage.key) private var language = "pt-BR"
     @State private var tabsRevision = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -140,7 +141,7 @@ private struct BlackNotchView: View {
     }
 
     /// The app ships no pt-BR localization, so dates would fall back to English without this.
-    private static let locale = Locale(identifier: "pt_BR")
+    private static var locale: Locale { AppLanguage.locale }
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Self.locale
@@ -251,6 +252,7 @@ private struct BlackNotchView: View {
             }
             .environment(\.colorScheme, .dark)
             .environment(\.locale, Self.locale)
+            .id(language)
             .padding(.horizontal, state.layout.anchor.isSide ? 0 : 20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: displayAlignment)
             .animation(reduceMotion ? .easeOut(duration: 0.2) : (state.expanded ? .spring(response: 0.5, dampingFraction: 0.78)
@@ -314,7 +316,7 @@ private struct BlackNotchView: View {
             }
                 }
             }
-            DockRailButton(symbol: state.dashboardMode == .residential ? "house.fill" : "house", title: "Casa",
+            DockRailButton(symbol: state.dashboardMode == .residential ? "house.fill" : "house", title: AppLanguage.text("Casa"),
                            selected: state.dashboardMode == .residential) {
                 withAnimation(.easeInOut(duration: 0.22)) { state.dashboardMode.toggleResidential() }
             }
@@ -336,7 +338,7 @@ private struct BlackNotchView: View {
                 }
             }
             Spacer(minLength: 0)
-            DockRailButton(symbol: "house", title: "Casa", selected: state.dashboardMode == .residential) { state.dashboardMode.toggleResidential() }
+            DockRailButton(symbol: "house", title: AppLanguage.text("Casa"), selected: state.dashboardMode == .residential) { state.dashboardMode.toggleResidential() }
             DisplayResolutionQuickMenu()
             DockRailButton(symbol: "gearshape", title: "Ajustes") { openSettings(); NSApp.activate(ignoringOtherApps: true) }
         }.padding(.horizontal, 16).background(NJP.layer1.opacity(useGlass ? 0.6 : 1))
@@ -345,11 +347,11 @@ private struct BlackNotchView: View {
     private var externalColumn: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(state.dashboardMode == .residential ? "Casa" : PanelTabs.titles[state.page]).font(.system(size: 15, weight: .semibold))
+                Text(state.dashboardMode == .residential ? AppLanguage.text("Casa") : PanelTabs.titles[state.page]).font(.system(size: 15, weight: .semibold))
                 Spacer()
                 if state.page == 1 && state.dashboardMode == .overview {
                     Button(action: refreshQuotas) { Image(systemName: "arrow.clockwise").frame(width: 30, height: 30).background(NJP.surfaceStrong, in: Circle()) }
-                        .buttonStyle(.plain).disabled(updatingQuotas).help("Atualizar cotas e saldos")
+                        .buttonStyle(.plain).disabled(updatingQuotas).help(AppLanguage.text("Atualizar cotas e saldos"))
                 }
             }.padding(.horizontal, 16).frame(height: state.layout.anchor.isSide ? 52 : 44)
             Divider().overlay(.white.opacity(0.1))
@@ -494,7 +496,7 @@ private struct BlackNotchView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "house.fill")
-                        Text("Controle residencial")
+                        Text(AppLanguage.text("Controle residencial"))
                     }
                     .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 10).padding(.vertical, 6)
@@ -524,7 +526,7 @@ private struct BlackNotchView: View {
                                 .background(.white.opacity(state.residentialDevice == device ? 0.16 : 0), in: Capsule())
                         }
                         .buttonStyle(.plain)
-                        .help(device == .air ? "Controle do ar-condicionado" : (device == .tv ? "Controle da TV" : "Cenas da casa"))
+                        .help(device == .air ? "Controle do ar-condicionado" : (device == .tv ? AppLanguage.text("Controle da TV") : AppLanguage.text("Cenas da casa")))
                         .accessibilityIdentifier("residential-device-" + device.rawValue)
                         .accessibilityAddTraits(state.residentialDevice == device ? .isSelected : [])
                     }
@@ -546,8 +548,8 @@ private struct BlackNotchView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(updatingQuotas)
-                .help("Atualizar cotas e saldos")
-                .accessibilityLabel("Atualizar cotas e saldos")
+                .help(AppLanguage.text("Atualizar cotas e saldos"))
+                .accessibilityLabel(AppLanguage.text("Atualizar cotas e saldos"))
                 .accessibilityIdentifier("refresh-quotas")
             }
             DisplayResolutionQuickMenu()
@@ -561,8 +563,8 @@ private struct BlackNotchView: View {
                     .background(.white.opacity(state.dashboardMode == .residential ? 0.16 : 0), in: Capsule())
             }
             .buttonStyle(.plain)
-            .help(state.dashboardMode == .residential ? "Voltar ao painel principal" : "Controle residencial")
-            .accessibilityLabel("Controle residencial")
+            .help(state.dashboardMode == .residential ? "Voltar ao painel principal" : AppLanguage.text("Controle residencial"))
+            .accessibilityLabel(AppLanguage.text("Controle residencial"))
             .accessibilityValue(state.dashboardMode == .residential ? "Ativado" : "Desativado")
             .accessibilityIdentifier("residential-mode-toggle")
             Button {
@@ -574,8 +576,8 @@ private struct BlackNotchView: View {
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .help("Configurações do notchJP")
-            .accessibilityLabel("Configurações do notchJP")
+            .help(AppLanguage.text("Configurações do notchJP"))
+            .accessibilityLabel(AppLanguage.text("Configurações do notchJP"))
             .accessibilityIdentifier("open-notchi-settings")
         }
         .padding(.horizontal, 4)
@@ -662,7 +664,7 @@ private struct BlackNotchView: View {
                     Text(state.openAIAccount).font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7)).lineLimit(1)
                 }
                 if let snapshot = openAIBalance.snapshot {
-                    Text(openAIBalance.isStale ? "Último saldo lido" : "Saldo disponível")
+                    Text(openAIBalance.isStale ? AppLanguage.text("Último saldo lido") : AppLanguage.text("Saldo disponível"))
                         .font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
                     Text(snapshot.balance, format: .currency(code: "USD"))
                         .font(.system(size: 15, weight: .bold)).foregroundStyle(Color.primary)
@@ -722,7 +724,7 @@ private struct BlackNotchView: View {
     }
 
     private func providerQuota(_ name: String, session: QuotaPeriod?, weekly: QuotaPeriod?,
-                               stale: Bool, unlimited: Bool, emptyText: String = "Cota indisponível") -> some View {
+                               stale: Bool, unlimited: Bool, emptyText: String = AppLanguage.text("Cota indisponível")) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(name).font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.primary)
@@ -732,7 +734,7 @@ private struct BlackNotchView: View {
             if unlimited {
                 Text("Ilimitado").font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.7))
             } else if session != nil || weekly != nil {
-                if let session { quotaRow("Sessão", period: session) }
+                if let session { quotaRow(AppLanguage.text("Sessão"), period: session) }
                 if let weekly { quotaRow("Semanal", period: weekly) }
             } else {
                 Text(emptyText).font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
@@ -784,7 +786,7 @@ private struct BlackNotchView: View {
                     .font(.system(size: 17, weight: .bold))
                 if !calendar.isDate(state.month, equalTo: Date(), toGranularity: .month) {
                     Button { withAnimation(.easeInOut(duration: 0.2)) { goToToday() } } label: {
-                        Text("Hoje").font(.system(size: 11, weight: .semibold))
+                        Text(AppLanguage.text("Hoje")).font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10).padding(.vertical, 5)
                             .background(NJP.accent, in: Capsule())
                     }
@@ -846,7 +848,7 @@ private struct BlackNotchView: View {
         switch calendarService.access {
         case .unknown:
             Button { Task { await calendarService.requestAccess() } } label: {
-                agendaLabel(symbol: "calendar.badge.plus", text: "Conectar agenda do Mac", prominent: true)
+                agendaLabel(symbol: "calendar.badge.plus", text: AppLanguage.text("Conectar agenda do Mac"), prominent: true)
             }
             .buttonStyle(.plain)
         case .denied:
@@ -855,7 +857,7 @@ private struct BlackNotchView: View {
                     NSWorkspace.shared.open(url)
                 }
             } label: {
-                agendaLabel(symbol: "lock", text: "Permitir a agenda em Ajustes do Sistema", prominent: false)
+                agendaLabel(symbol: "lock", text: AppLanguage.text("Permitir a agenda em Ajustes do Sistema"), prominent: false)
             }
             .buttonStyle(.plain)
         case .granted:
@@ -872,7 +874,7 @@ private struct BlackNotchView: View {
                                 .padding(.horizontal, 9).padding(.vertical, 6)
                                 .background(NJP.surfaceStrong, in: Capsule())
                         }
-                        .buttonStyle(.plain).help("Ver todos os compromissos do dia")
+                        .buttonStyle(.plain).help(AppLanguage.text("Ver todos os compromissos do dia"))
                         .popover(isPresented: $state.dayListOpen, arrowEdge: .top) {
                             DayEventsListView(day: state.selectedDay, events: events) { event in
                                 state.dayListOpen = false
@@ -905,7 +907,7 @@ private struct BlackNotchView: View {
     }
 
     private func eventPill(_ event: CalendarEventItem) -> some View {
-        let time = event.isAllDay ? "Dia todo" : event.start.formatted(.dateTime.hour().minute().locale(Self.locale))
+        let time = event.isAllDay ? AppLanguage.text("Dia todo") : event.start.formatted(.dateTime.hour().minute().locale(Self.locale))
         let label = HStack(spacing: 5) {
             Circle().fill(event.color).frame(width: 7, height: 7)
             Text(time).font(.system(size: 11, weight: .bold))
@@ -918,12 +920,12 @@ private struct BlackNotchView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Button { state.eventDetail = event } label: { label }
             if state.layout.isExternal, let url = event.joinURL {
-                Link("Entrar na reunião", destination: url).font(.system(size: 11, weight: .semibold))
+                Link(AppLanguage.text("Entrar na reunião"), destination: url).font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal, 10).padding(.vertical, 5).background(NJP.accent, in: Capsule())
             }
         }
             .buttonStyle(.plain)
-            .help("Ver detalhes")
+            .help(AppLanguage.text("Ver detalhes"))
             .popover(isPresented: Binding(
                 get: { state.eventDetail?.id == event.id },
                 set: { if !$0 { state.eventDetail = nil } }
@@ -1021,7 +1023,7 @@ func refreshRunpod(_ state: NotchState) async {
         state.runpodStatus = "Atualizado"
     } catch {
         state.runpodBalance = nil
-        state.runpodStatus = "Saldo indisponível"
+        state.runpodStatus = AppLanguage.text("Saldo indisponível")
     }
 }
 
@@ -1051,6 +1053,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var displayPanels: [ScreenIdentifier: DashboardScreenPanel] = [:]
     private var timer: Timer?
     private var alertTimer: Timer?
+    private var serviceTimer: Timer?
+    private var workspaceObservers: [NSObjectProtocol] = []
+    private var sleeping = false
     private var shortcutService: GlobalShortcutService?
     private var scrollMonitor: Any?
     private var settingsObserver: NSObjectProtocol?
@@ -1109,6 +1114,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Test hosts must not start real account polling or open the notch.
         if NSClassFromString("XCTestCase") != nil { return }
         #endif
+        AppExperience.home = state.home
+        if !UserDefaults.standard.bool(forKey: "njp.guideCompleted") {
+            DispatchQueue.main.async { AppExperience.showGuide() }
+        }
         AppUpdateService.shared.start()
         AppAudioMixer.shared.start()
         state.home.start()
@@ -1165,9 +1174,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { await OpenAICreditBalanceService.shared.refresh() }
         NotificationCenter.default.addObserver(self, selector: #selector(screenParametersChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20.0, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateHover() }
-        }
+        startInteractionTimers()
+        let workspace = NSWorkspace.shared.notificationCenter
+        workspaceObservers.append(workspace.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.sleeping = true
+                self?.timer?.invalidate(); self?.timer = nil
+                self?.serviceTimer?.invalidate(); self?.serviceTimer = nil
+            }
+        })
+        workspaceObservers.append(workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.sleeping = false; self?.startInteractionTimers(); self?.lastSpotifyRefresh = .distantPast; self?.refreshVisibleServices() }
+        })
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -1179,6 +1197,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AntigravityUsageService.shared.stopPolling()
         timer?.invalidate()
         alertTimer?.invalidate()
+        serviceTimer?.invalidate()
+        for observer in workspaceObservers { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
         if let scrollMonitor { NSEvent.removeMonitor(scrollMonitor) }
     }
 
@@ -1325,7 +1345,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func updateHover() {
+    private func startInteractionTimers() {
+        guard timer == nil, serviceTimer == nil else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 20.0, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateHover() }
+        }
+        serviceTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshVisibleServices() }
+        }
+        serviceTimer?.tolerance = 0.2
+    }
+
+    private func refreshVisibleServices() {
+        guard !sleeping else { return }
         let now = Date()
         let expanded = displayPanels.values.filter { $0.state.expanded }
         if !expanded.isEmpty && now.timeIntervalSince(lastRouterRefresh) >= 300 {
@@ -1341,6 +1373,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if now.timeIntervalSince(lastSpotifyRefresh) >= (musicVisible ? 3 : 8), musicVisible || NJPSettings.nowPlayingAlert {
             lastSpotifyRefresh = now; SpotifyService.refresh(state)
         }
+    }
+
+    private func updateHover() {
+        guard !sleeping, NJPSettings.expandOnHover || displayPanels.values.contains(where: { $0.state.expanded }) else { return }
+        let now = Date()
         let mouse = NSEvent.mouseLocation
         for context in displayPanels.values { updateHover(context, mouse: mouse, now: now) }
     }
@@ -1399,7 +1436,7 @@ extension AppDelegate {
         if let overviewPage { preview.page = max(0, min(6, overviewPage)) }
         if overviewPage == 0 {
             preview.track = CommandLine.arguments.contains("--preview-long-title")
-                ? "Uma faixa com um título bem comprido para conferir o espaço de leitura" : "Faixa em reprodução"
+                ? "Uma faixa com um título bem comprido para conferir o espaço de leitura" : AppLanguage.text("Faixa em reprodução")
             preview.artist = "Artista"
             preview.position = 61
             preview.duration = 178
@@ -1518,11 +1555,11 @@ private final class ResidentialPreviewBackend: ACBackend {
     init(disconnected: Bool) { self.disconnected = disconnected }
     var value = ACState(power: true, temperature: 24, roomTemperature: 27,
                         eco: true, mode: .cool, fan: .auto, sleep: false, airflow: .vertical,
-                        deviceName: "Ar-condicionado", verticalDirection: .swingAll,
+                        deviceName: AppLanguage.text("Ar-condicionado"), verticalDirection: .swingAll,
                         horizontalDirection: .middle, breeze: false)
     func configure(email: String, password: String, region: String) async throws { }
     func readState() async throws -> ACState {
-        if disconnected { throw TCLBackendError("Conecte sua conta TCL Home para controlar o ar.") }
+        if disconnected { throw TCLBackendError(AppLanguage.text("Conecte sua conta TCL Home para controlar o ar.")) }
         return value
     }
     func perform(_ command: ACCommand) async throws -> ACState { value }

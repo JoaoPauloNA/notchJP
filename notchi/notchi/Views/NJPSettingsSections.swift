@@ -64,18 +64,19 @@ struct NJPAppearanceSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            SettingsHeader(title: "Aparência", subtitle: "A cor de destaque vale para o painel do notch e para estas janelas.")
+            LanguagePicker()
+            SettingsHeader(title: AppLanguage.text("Aparência"), subtitle: AppLanguage.text("A cor de destaque vale para o painel do notch e para estas janelas."))
             if #available(macOS 26.0, *) {
                 HStack(spacing: 12) {
-                    materialPreview("Sólido", glass: false)
+                    materialPreview(AppLanguage.text("Sólido"), glass: false)
                     materialPreview("Liquid Glass", glass: true)
                 }
                 Toggle("Liquid Glass", isOn: $liquidGlass)
-                Toggle("Contraste reforçado no vidro", isOn: $glassContrast).disabled(!liquidGlass)
-                Text("Vidro nativo na navegação e fundo translúcido escuro para leitura. Desligue para usar o preto sólido. Respeita Reduzir transparência do macOS.")
+                Toggle(AppLanguage.text("Contraste reforçado no vidro"), isOn: $glassContrast).disabled(!liquidGlass)
+                Text(AppLanguage.text("Vidro nativo na navegação e fundo translúcido escuro para leitura. Desligue para usar o preto sólido. Respeita Reduzir transparência do macOS."))
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Text("COR DE DESTAQUE").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+            Text(AppLanguage.text("COR DE DESTAQUE")).font(.caption.weight(.bold)).foregroundStyle(.secondary)
             HStack(spacing: 16) {
                 ForEach(Array(NJPSettings.accentPalette.enumerated()), id: \.offset) { index, item in
                     Button { accentIndex = index } label: {
@@ -92,7 +93,7 @@ struct NJPAppearanceSettingsView: View {
             HStack(spacing: 10) {
                 NotchJPMark(size: 28)
                 Image(systemName: "music.note").frame(width: 34, height: 28).background(NJP.accent, in: Capsule())
-                Text("Hoje").font(.system(size: 12, weight: .semibold))
+                Text(AppLanguage.text("Hoje")).font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 12).padding(.vertical, 6).background(NJP.accent, in: Capsule())
                 Circle().fill(NJP.accent).frame(width: 28, height: 28)
                     .overlay { Text("6").font(.system(size: 13, weight: .bold)).foregroundStyle(.white) }
@@ -100,7 +101,7 @@ struct NJPAppearanceSettingsView: View {
             .padding(16)
             .background(Color.black.opacity(0.5), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Prévia da cor de destaque")
+            .accessibilityLabel(AppLanguage.text("Prévia da cor de destaque"))
         }
         .padding(28).frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -123,49 +124,49 @@ struct NJPPanelSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SettingsHeader(title: "Painel", subtitle: "Como o painel abre e o que o notch fechado avisa.")
+            SettingsHeader(title: AppLanguage.text("Painel"), subtitle: AppLanguage.text("Como o painel abre e o que o notch fechado avisa."))
                 .padding(.bottom, 8)
             LaunchAtLoginSetting()
-            SettingsRow(title: "Abrir ao passar o mouse", hint: "Desligado, só o atalho abre o painel.") {
+            SettingsRow(title: AppLanguage.text("Abrir ao passar o mouse"), hint: AppLanguage.text("Desligado, só o atalho abre o painel.")) {
                 Toggle("", isOn: $expandOnHover).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Atraso para abrir") {
+            SettingsRow(title: AppLanguage.text("Atraso para abrir")) {
                 Picker("", selection: $hoverDelay) {
-                    Text("Rápido").tag(0.15)
+                    Text(AppLanguage.text("Rápido")).tag(0.15)
                     Text("Normal").tag(0.3)
-                    Text("Lento").tag(0.6)
+                    Text(AppLanguage.text("Lento")).tag(0.6)
                 }
                 .labelsHidden().pickerStyle(.segmented).frame(width: 210)
                 .disabled(!expandOnHover)
             }
-            SettingsRow(title: "Atalho global", hint: "\(AppSettings.panelToggleShortcut.displayName) abre e fecha o painel.") {
+            SettingsRow(title: AppLanguage.text("Atalho global"), hint: "\(AppSettings.panelToggleShortcut.displayName) abre e fecha o painel.") {
                 Toggle("", isOn: $shortcutEnabled).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Lembrar a última aba") {
+            SettingsRow(title: AppLanguage.text("Lembrar a última aba")) {
                 Toggle("", isOn: $rememberPage).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Trocar de aba com dois dedos", hint: "Deslize para os lados no trackpad com o painel aberto.") {
+            SettingsRow(title: AppLanguage.text("Trocar de aba com dois dedos"), hint: AppLanguage.text("Deslize para os lados no trackpad com o painel aberto.")) {
                 Toggle("", isOn: $swipeTabs).labelsHidden().toggleStyle(.switch)
             }
             PanelTabsSettings()
-            Text("AVISOS COM O NOTCH FECHADO").font(.caption.weight(.bold)).foregroundStyle(.secondary).padding(.top, 10)
-            SettingsRow(title: "Próximo compromisso", hint: "15 minutos antes de começar.") {
+            Text(AppLanguage.text("AVISOS COM O NOTCH FECHADO")).font(.caption.weight(.bold)).foregroundStyle(.secondary).padding(.top, 10)
+            SettingsRow(title: AppLanguage.text("Próximo compromisso"), hint: AppLanguage.text("15 minutos antes de começar.")) {
                 Toggle("", isOn: $eventAlert).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Pouco espaço em disco", hint: "Abaixo de \(SystemHealthService.lowDiskThresholdGB) GB livres.") {
+            SettingsRow(title: AppLanguage.text("Pouco espaço em disco"), hint: "Abaixo de \(SystemHealthService.lowDiskThresholdGB) GB livres.") {
                 Toggle("", isOn: $diskAlert).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Sessões do Claude Code e do Codex", hint: "Pede aprovação ou terminou. Exige ativar os hooks em Agentes.") {
+            SettingsRow(title: AppLanguage.text("Sessões do Claude Code e do Codex"), hint: AppLanguage.text("Pede aprovação ou terminou. Exige ativar os hooks em Agentes.")) {
                 Toggle("", isOn: $agentAlert).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Música tocando", hint: "Ondas e o título da faixa ao lado do notch.") {
+            SettingsRow(title: AppLanguage.text("Música tocando"), hint: AppLanguage.text("Ondas e o título da faixa ao lado do notch.")) {
                 Toggle("", isOn: $nowPlayingAlert).labelsHidden().toggleStyle(.switch)
             }
-            SettingsRow(title: "Microfone ou câmera em uso", hint: "Ícone vermelho ao lado do notch enquanto algum app usa.") {
+            SettingsRow(title: AppLanguage.text("Microfone ou câmera em uso"), hint: AppLanguage.text("Ícone vermelho ao lado do notch enquanto algum app usa.")) {
                 Toggle("", isOn: $privacyAlert).labelsHidden().toggleStyle(.switch)
             }
-            Text("PRIVACIDADE").font(.caption.weight(.bold)).foregroundStyle(.secondary).padding(.top, 10)
-            SettingsRow(title: "Histórico da área de transferência", hint: "Guarda os últimos textos copiados só na memória e ignora gerenciadores de senha.") {
+            Text(AppLanguage.text("PRIVACIDADE")).font(.caption.weight(.bold)).foregroundStyle(.secondary).padding(.top, 10)
+            SettingsRow(title: AppLanguage.text("Histórico da área de transferência"), hint: AppLanguage.text("Guarda os últimos textos copiados só na memória e ignora gerenciadores de senha.")) {
                 Toggle("", isOn: $clipboardHistory).labelsHidden().toggleStyle(.switch)
             }
         }
@@ -189,38 +190,38 @@ struct NJPAgentsSettingsView: View {
     var body: some View {
         let claude = ClaudeConfigDirectoryResolver.resolve()
         VStack(alignment: .leading, spacing: 12) {
-            SettingsHeader(title: "Agentes", subtitle: "O notch avisa quando o Claude Code ou o Codex pede aprovação ou termina. Isso só funciona com hooks instalados, e nada é alterado até você ativar.")
+            SettingsHeader(title: AppLanguage.text("Agentes"), subtitle: AppLanguage.text("O notch avisa quando o Claude Code ou o Codex pede aprovação ou termina. Isso só funciona com hooks instalados, e nada é alterado até você ativar."))
                 .padding(.bottom, 8)
             SettingsRow(
                 title: "Claude Code",
                 hint: "Escreve \(tilde(claude.hookScriptURL)) e registra os eventos em \(tilde(claude.settingsURL)). Remover desfaz as duas coisas."
             ) {
-                Button(claudeInstalled ? "Remover" : "Ativar") { toggleClaude() }
+                Button(claudeInstalled ? AppLanguage.text("Remover") : "Ativar") { toggleClaude() }
             }
             SettingsRow(
                 title: "Codex",
                 hint: "Escreve \(tilde(CodexHookInstaller.hookScriptURL)), registra os eventos em \(tilde(CodexHookInstaller.hooksJSONURL)) e liga o recurso de hooks em \(tilde(CodexHookInstaller.configURL))."
             ) {
-                Button(codexInstalled ? "Remover" : "Ativar") { toggleCodex() }
+                Button(codexInstalled ? AppLanguage.text("Remover") : "Ativar") { toggleCodex() }
             }
             SettingsRow(
                 title: "Devin",
                 hint: "Escreve \(tilde(DevinHookInstaller.hookScriptURL)) e registra os eventos em \(tilde(DevinHookInstaller.configURL)). Remover desfaz."
             ) {
-                Button(devinInstalled ? "Remover" : "Ativar") { toggleDevin() }
+                Button(devinInstalled ? AppLanguage.text("Remover") : "Ativar") { toggleDevin() }
             }
             SettingsRow(
                 title: "AGY (Antigravity)",
                 hint: "Escreve \(tilde(AgyHookInstaller.hookScriptURL)) e acrescenta a entrada \"notchjp\" em \(tilde(AgyHookInstaller.hooksJSONURL)), sem mexer nas que já existem (como a do ai-memory). Guarda uma cópia do original. Mostra trabalhando e pronto; o AGY não tem evento de aprovação."
             ) {
-                Button(agyInstalled ? "Remover" : "Ativar") { toggleAgy() }
+                Button(agyInstalled ? AppLanguage.text("Remover") : "Ativar") { toggleAgy() }
             }
             if let message {
                 Text(message).font(.caption).foregroundStyle(NJP.warn)
             }
-            Text("SESSÕES VISTAS AGORA").font(.caption.weight(.bold)).foregroundStyle(.secondary).padding(.top, 10)
+            Text(AppLanguage.text("SESSÕES VISTAS AGORA")).font(.caption.weight(.bold)).foregroundStyle(.secondary).padding(.top, 10)
             if monitor.sessions.isEmpty {
-                Text("Nenhuma sessão ativa. Depois de ativar, abra o Claude Code ou o Codex e ela aparece aqui.")
+                Text(AppLanguage.text("Nenhuma sessão ativa. Depois de ativar, abra o Claude Code ou o Codex e ela aparece aqui."))
                     .font(.callout).foregroundStyle(.secondary)
             } else {
                 ForEach(monitor.sessions) { session in
@@ -239,7 +240,7 @@ struct NJPAgentsSettingsView: View {
     private func label(for phase: AgentSessionSnapshot.Phase) -> String {
         switch phase {
         case .working: "Trabalhando"
-        case .needsApproval: "Precisa de você"
+        case .needsApproval: AppLanguage.text("Precisa de você")
         case .done: "Pronto"
         }
     }
@@ -304,7 +305,7 @@ struct NJPAboutSettingsView: View {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "—"
         let build = info?["CFBundleVersion"] as? String ?? "—"
-        return "Versão \(short) (\(build))"
+        return "\(AppLanguage.text("Versão")) \(short) (\(build))"
     }
 
     var body: some View {
@@ -314,32 +315,33 @@ struct NJPAboutSettingsView: View {
                 Text("notch").font(.system(size: 30, weight: .regular))
                 Text("JP").font(.system(size: 30, weight: .heavy)).foregroundStyle(NJP.accent)
             }
-            Text(version + " · Edição Pública").font(.callout).foregroundStyle(.secondary)
+            Text(version + " · " + AppLanguage.text("Edição Pública")).font(.callout).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
-                Text("Código aberto").font(.system(size: 13, weight: .bold))
-                Text("O notchJP é baseado no Notchi, de Ruban, e segue a mesma licença GNU GPL v3.")
+                Text(AppLanguage.text("Código aberto")).font(.system(size: 13, weight: .bold))
+                Text(AppLanguage.text("O notchJP é baseado no Notchi, de Ruban, e segue a mesma licença GNU GPL v3."))
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             .padding(18).frame(maxWidth: .infinity, alignment: .leading)
             .background(NJP.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             VStack(alignment: .leading, spacing: 10) {
-                Text("Edição pública · atualização manual").font(.headline)
-                Text("Esta edição não consulta servidores de atualização. Para atualizar, obtenha o fonte no GitHub e compile novamente.")
+                Text(AppLanguage.text("Edição pública · atualização manual")).font(.headline)
+                Text(AppLanguage.text("Esta edição não consulta servidores de atualização. Para atualizar, obtenha o fonte no GitHub e compile novamente."))
                     .font(.caption).foregroundStyle(.secondary)
-                Link("Abrir notchJP no GitHub", destination: URL(string: "https://github.com/JoaoPauloNA/notchJP")!)
+                Link(AppLanguage.text("Abrir notchJP no GitHub"), destination: URL(string: "https://github.com/JoaoPauloNA/notchJP")!)
             }
             .padding(14).background(NJP.surface, in: RoundedRectangle(cornerRadius: 14))
+            Button(AppLanguage.text("Abrir guia inicial")) { AppExperience.showGuide() }
             HStack(spacing: 10) {
-                Button("Reiniciar notchJP") { AppControl.restart() }
-                    .help("Fecha e abre o app de novo")
-                Button("Sair") { AppControl.quit() }
-                    .help("Fecha o notchJP; abra de novo por /Applications")
+                Button(AppLanguage.text("Reiniciar notchJP")) { AppControl.restart() }
+                    .help(AppLanguage.text("Fecha e abre o app de novo"))
+                Button(AppLanguage.text("Sair")) { AppControl.quit() }
+                    .help(AppLanguage.text("Fecha o notchJP; abra de novo por /Applications"))
             }
-            Button("Recompilar e instalar…") { LocalBuilder.confirmAndRun() }
-                .help("Compila este projeto com o Xcode, troca o app em /Applications e reabre")
+            Button(AppLanguage.text("Recompilar e instalar…")) { LocalBuilder.confirmAndRun() }
+                .help(AppLanguage.text("Compila este projeto com o Xcode, troca o app em /Applications e reabre"))
             HStack(spacing: 10) {
-                Link("Projeto original", destination: URL(string: "https://github.com/sk-ruban/notchi")!)
-                Link("Licença GPL v3", destination: URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!)
+                Link(AppLanguage.text("Projeto original"), destination: URL(string: "https://github.com/sk-ruban/notchi")!)
+                Link(AppLanguage.text("Licença GPL v3"), destination: URL(string: "https://www.gnu.org/licenses/gpl-3.0.html")!)
             }
             .font(.system(size: 12, weight: .semibold))
         }
@@ -360,17 +362,17 @@ struct NJPDictationSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SettingsHeader(title: "Ditado", subtitle: "Fale com um atalho e o texto é colado no campo onde você estava. Inclui o antigo BlabberType.")
+            SettingsHeader(title: AppLanguage.text("Ditado"), subtitle: AppLanguage.text("Fale com um atalho e o texto é colado no campo onde você estava. Inclui o antigo BlabberType."))
                 .padding(.bottom, 8)
-            SettingsRow(title: "Ativar o ditado no notch",
+            SettingsRow(title: AppLanguage.text("Ativar o ditado no notch"),
                         hint: "Se o BlabberType estiver aberto, feche-o antes: os dois usariam o mesmo atalho e gravariam juntos.") {
                 Toggle("", isOn: $enabled).labelsHidden().toggleStyle(.switch)
             }
             if enabled {
-                SettingsRow(title: "Atalho", hint: capturing ? "Pressione a combinação (Esc cancela)" : "Segure para ditar; toque duas vezes para mãos livres.") {
+                SettingsRow(title: "Atalho", hint: capturing ? "Pressione a combinação (Esc cancela)" : AppLanguage.text("Segure para ditar; toque duas vezes para mãos livres.")) {
                     HStack(spacing: 8) {
                         Text(capturing ? "…" : model.shortcutStatus).font(.system(size: 12, weight: .semibold))
-                        Button(capturing ? "Cancelar" : "Alterar…") { capturing ? stopCapture() : startCapture() }
+                        Button(capturing ? AppLanguage.text("Cancelar") : "Alterar…") { capturing ? stopCapture() : startCapture() }
                     }
                 }
                 if let captureError { Text(captureError).font(.caption).foregroundStyle(NJP.warn) }
@@ -384,43 +386,43 @@ struct NJPDictationSettingsView: View {
                         ForEach(languages, id: \.0) { Text($0.1).tag($0.0) }
                     }.labelsHidden().frame(width: 190)
                 }
-                SettingsRow(title: "Seu vocabulário", hint: "Nomes e termos que o ditado costuma errar, separados por vírgula. Vale para o reconhecimento novo do macOS.") {
+                SettingsRow(title: AppLanguage.text("Seu vocabulário"), hint: AppLanguage.text("Nomes e termos que o ditado costuma errar, separados por vírgula. Vale para o reconhecimento novo do macOS.")) {
                     TextField("notchJP, Hostinger, TCL", text: vocabularyText)
                         .textFieldStyle(.roundedBorder).frame(width: 260)
                 }
                 if model.settings.provider == .whisper {
-                    SettingsRow(title: "Servidor Whisper", hint: "whisper-server já em execução neste Mac.") {
+                    SettingsRow(title: AppLanguage.text("Servidor Whisper"), hint: "whisper-server já em execução neste Mac.") {
                         TextField("http://127.0.0.1:8080/inference", text: $model.settings.whisperEndpoint)
                             .textFieldStyle(.roundedBorder).frame(width: 260)
                     }
                 }
                 if model.settings.provider == .api {
-                    SettingsRow(title: "Endereço da API", hint: "O áudio sai do Mac neste modo.") {
+                    SettingsRow(title: AppLanguage.text("Endereço da API"), hint: "O áudio sai do Mac neste modo.") {
                         TextField("https://…/audio/transcriptions", text: $model.settings.apiEndpoint)
                             .textFieldStyle(.roundedBorder).frame(width: 260)
                     }
                     SettingsRow(title: "Modelo") {
                         TextField("whisper-1", text: $model.settings.apiModel).textFieldStyle(.roundedBorder).frame(width: 180)
                     }
-                    SettingsRow(title: "Chave da API", hint: "Fica no Chaves do macOS. Deixe vazio para manter a salva.") {
+                    SettingsRow(title: AppLanguage.text("Chave da API"), hint: AppLanguage.text("Fica no Chaves do macOS. Deixe vazio para manter a salva.")) {
                         HStack {
                             SecureField("sk-…", text: $key).textFieldStyle(.roundedBorder).frame(width: 150)
-                            Button("Salvar") { model.apiKey = key; model.saveKey(); key = "" }.disabled(key.isEmpty)
+                            Button(AppLanguage.text("Salvar")) { model.apiKey = key; model.saveKey(); key = "" }.disabled(key.isEmpty)
                         }
                     }
                 }
                 if model.settings.provider == .analyzer {
-                    SettingsRow(title: "Mostrar o texto enquanto falo", hint: "As palavras aparecem em Ferramentas > Ditado durante a gravação.") {
+                    SettingsRow(title: AppLanguage.text("Mostrar o texto enquanto falo"), hint: AppLanguage.text("As palavras aparecem em Ferramentas > Ditado durante a gravação.")) {
                         Toggle("", isOn: $model.settings.liveText).labelsHidden().toggleStyle(.switch)
                     }
                 }
-                SettingsRow(title: "Colar no campo automaticamente", hint: model.accessibilityGranted ? "Acessibilidade permitida." : "Precisa da permissão de Acessibilidade.") {
+                SettingsRow(title: AppLanguage.text("Colar no campo automaticamente"), hint: model.accessibilityGranted ? AppLanguage.text("Acessibilidade permitida.") : AppLanguage.text("Precisa da permissão de Acessibilidade.")) {
                     HStack {
                         if !model.accessibilityGranted { Button("Permitir") { model.allowAutomaticPaste() } }
                         Toggle("", isOn: $model.settings.autoPaste).labelsHidden().toggleStyle(.switch)
                     }
                 }
-                SettingsRow(title: "Guardar histórico", hint: "Os últimos 100 ditados, neste Mac.") {
+                SettingsRow(title: AppLanguage.text("Guardar histórico"), hint: AppLanguage.text("Os últimos 100 ditados, neste Mac.")) {
                     HStack {
                         if !model.history.isEmpty { Button("Limpar") { model.clearHistory() } }
                         Toggle("", isOn: $model.settings.keepHistory).labelsHidden().toggleStyle(.switch)

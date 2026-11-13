@@ -61,6 +61,7 @@ nonisolated struct HomeTimer: Codable, Identifiable, Equatable {
     private let defaults: UserDefaults
     private var subscriptions = Set<AnyCancellable>()
     private var ticker: Timer?
+    private var started = false
     private var shortcuts: HomeSceneShortcuts?
     private let executor: ((HomeScene) async -> [HomeActionResult])?
 
@@ -82,16 +83,23 @@ nonisolated struct HomeTimer: Codable, Identifiable, Equatable {
         defaults.set(try? JSONEncoder().encode(timers), forKey: "njp.home.timers")
     }
     func start(now: Date = Date()) {
-        guard ticker == nil else { return }
+        guard !started else { return }
+        started = true
         recoverTimers(now: now)
         shortcuts = HomeSceneShortcuts { [weak self] id in
             guard let self, let scene = self.scenes.first(where: { $0.id == id }) else { return }
             Task { await self.run(scene) }
         }
         reloadShortcuts()
-        ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        armTimer()
+    }
+    private func armTimer() {
+        ticker?.invalidate(); ticker = nil
+        guard started, let next = timers.filter({ $0.status == .pending }).map(\.deadline).min() else { return }
+        ticker = Timer.scheduledTimer(withTimeInterval: max(1, next.timeIntervalSinceNow), repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in await self?.tick() }
         }
+        ticker?.tolerance = 0.2
     }
     func recoverTimers(now: Date) {
         for index in timers.indices where timers[index].status == .running || (timers[index].status == .pending && timers[index].deadline <= now) {
@@ -100,7 +108,7 @@ nonisolated struct HomeTimer: Codable, Identifiable, Equatable {
         }
         persist()
     }
-    func stop() { ticker?.invalidate(); ticker = nil; shortcuts?.stop(); shortcuts = nil }
+    func stop() { started = false; ticker?.invalidate(); ticker = nil; shortcuts?.stop(); shortcuts = nil }
     private func reloadShortcuts() {
         if let failures = shortcuts?.reload(scenes), !failures.isEmpty { message = failures.joined(separator: "\n") }
     }
@@ -154,13 +162,14 @@ nonisolated struct HomeTimer: Codable, Identifiable, Equatable {
         guard timer.action != .airTemperature || (16...32).contains(timer.temperature) else { return "Temperatura inválida." }
         timers.removeAll { [.succeeded, .cancelled, .missed, .failed].contains($0.status) && $0.deadline < now.addingTimeInterval(-86400) }
         guard timers.filter({ $0.status == .pending }).count < 20 else { return "Limite de 20 temporizadores ativos." }
-        timers.append(timer); persist(); return nil
+        timers.append(timer); persist(); armTimer(); return nil
     }
     func cancel(_ id: String) {
         guard let index = timers.firstIndex(where: { $0.id == id && $0.status == .pending }) else { return }
-        timers[index].status = .cancelled; persist()
+        timers[index].status = .cancelled; persist(); armTimer()
     }
     func tick(now: Date = Date()) async {
+        defer { armTimer() }
         guard !running, let index = timers.firstIndex(where: { $0.status == .pending && $0.deadline <= now }) else { return }
         let item = timers[index]
         // After sleep, never execute an old physical action unexpectedly.

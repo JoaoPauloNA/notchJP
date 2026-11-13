@@ -18,15 +18,15 @@ func loadFileURLs(from providers: [NSItemProvider], completion: @escaping @MainA
     group.notify(queue: .main) { MainActor.assumeIsolated { completion(urls) } }
 }
 
-/// "Ferramentas" page: timer, project shortcuts, file shelf, clipboard history and reminders.
+/// AppLanguage.text("Ferramentas") page: timer, project shortcuts, file shelf, clipboard history and reminders.
 struct ToolsView: View {
     @Environment(\.panelComposition) private var composition
     var home: HomeAutomation? = nil
     @AppStorage(NJPSettings.toolsSectionKey) private var section = 0
 
     private let sections: [(title: String, symbol: String)] = [
-        ("Cronômetro", "timer"), ("Atalhos", "folder"), ("Bandeja", "tray.and.arrow.down"),
-        ("Copiados", "doc.on.clipboard"), ("Lembretes", "checklist"), ("Ditado", "mic"),
+        (AppLanguage.text("Cronômetro"), "timer"), ("Atalhos", "folder"), ("Bandeja", "tray.and.arrow.down"),
+        ("Copiados", "doc.on.clipboard"), (AppLanguage.text("Lembretes"), "checklist"), (AppLanguage.text("Ditado"), "mic"),
     ]
 
     var body: some View {
@@ -96,7 +96,7 @@ private struct TimerSection: View {
         VStack(alignment: .leading, spacing: 10) {
             switch timer.state {
             case .idle, .finished:
-                Text("Começar um foco").font(.system(size: 13, weight: .bold))
+                Text(AppLanguage.text("Começar um foco")).font(.system(size: 13, weight: .bold))
                 if let home {
                     FocusScenePicker(home: home, sceneID: $sceneID)
                 }
@@ -108,20 +108,20 @@ private struct TimerSection: View {
                             else { timer.start(minutes: minutes) }
                         }
                     }
-                    chip("Pausa 5 min") { timer.start(minutes: 5) }
+                    chip(AppLanguage.text("Pausa 5 min")) { timer.start(minutes: 5) }
                 }
             case .running:
                 HStack(spacing: 8) {
-                    chip("Pausar", prominent: true) { timer.pause() }
+                    chip(AppLanguage.text("Pausar"), prominent: true) { timer.pause() }
                     chip("Zerar") { timer.reset() }
                 }
             case .paused:
                 HStack(spacing: 8) {
-                    chip("Continuar", prominent: true) { timer.resume() }
+                    chip(AppLanguage.text("Continuar"), prominent: true) { timer.resume() }
                     chip("Zerar") { timer.reset() }
                 }
             }
-            Text("O tempo aparece ao lado do notch com o painel fechado.")
+            Text(AppLanguage.text("O tempo aparece ao lado do notch com o painel fechado."))
                 .font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
         }
     }
@@ -141,8 +141,8 @@ private struct FocusScenePicker: View {
     @Binding var sceneID: String
     var body: some View {
         VStack(alignment: .leading) {
-            Picker("Cena ao iniciar", selection: $sceneID) {
-                Text("Somente cronômetro").tag("")
+            Picker(AppLanguage.text("Cena ao iniciar"), selection: $sceneID) {
+                Text(AppLanguage.text("Somente cronômetro")).tag("")
                 ForEach(home.scenes) { Text($0.name).tag($0.id) }
             }.frame(maxWidth: 260)
             if let message = home.message { Text(message).font(.caption).foregroundStyle(NJP.warn) }
@@ -164,7 +164,7 @@ private struct ShortcutsSection: View {
                     Button(action: choose) {
                         HStack(spacing: 8) {
                             Image(systemName: "plus").font(.system(size: 13, weight: .bold))
-                            Text("Adicionar pasta").font(.system(size: 12, weight: .semibold))
+                            Text(AppLanguage.text("Adicionar pasta")).font(.system(size: 12, weight: .semibold))
                         }
                         .foregroundStyle(Color.primary.opacity(0.7))
                         .frame(maxWidth: .infinity, minHeight: 46)
@@ -190,11 +190,11 @@ private struct ShortcutsSection: View {
         .buttonStyle(.plain)
         .help("Abrir \(path) no iTerm")
         .contextMenu {
-            Button("Abrir no iTerm") { ProjectShortcutsStore.open(path) }
-            Button("Abrir no Finder") { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }
-            Button("Abrir no Visual Studio Code") { ProjectShortcutsStore.open(path, withBundle: "com.microsoft.VSCode") }
+            Button(AppLanguage.text("Abrir no iTerm")) { ProjectShortcutsStore.open(path) }
+            Button(AppLanguage.text("Abrir no Finder")) { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }
+            Button(AppLanguage.text("Abrir no Visual Studio Code")) { ProjectShortcutsStore.open(path, withBundle: "com.microsoft.VSCode") }
             Divider()
-            Button("Remover atalho") { store.remove(path) }
+            Button(AppLanguage.text("Remover atalho")) { store.remove(path) }
         }
     }
 
@@ -204,7 +204,7 @@ private struct ShortcutsSection: View {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
         panel.prompt = "Adicionar"
-        panel.message = "Escolha as pastas dos projetos"
+        panel.message = AppLanguage.text("Escolha as pastas dos projetos")
         if panel.runModal() == .OK { store.add(panel.urls) }
     }
 }
@@ -221,7 +221,7 @@ private struct ShelfSection: View {
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     Image(systemName: "tray.and.arrow.down").font(.system(size: 14))
-                    Text(items.isEmpty ? "Arraste arquivos para qualquer lugar do painel" : "Solte mais arquivos aqui")
+                    Text(items.isEmpty ? AppLanguage.text("Arraste arquivos para qualquer lugar do painel") : AppLanguage.text("Solte mais arquivos aqui"))
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .foregroundStyle(Color.primary.opacity(targeted ? 1 : 0.6))
@@ -245,26 +245,26 @@ private struct ShelfSection: View {
             Spacer(minLength: 8)
             Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
                 Image(systemName: "magnifyingglass").font(.system(size: 11))
-            }.buttonStyle(.plain).help("Mostrar no Finder")
+            }.buttonStyle(.plain).help(AppLanguage.text("Mostrar no Finder"))
             Menu {
                 Button("AirDrop") {
                     NSSharingService(named: .sendViaAirDrop)?.perform(withItems: [url])
                 }.disabled(NSSharingService(named: .sendViaAirDrop)?.canPerform(withItems: [url]) != true)
-                Button("Copiar caminho") {
+                Button(AppLanguage.text("Copiar caminho")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(url.path, forType: .string)
                 }
                 ShareLink(item: url) { Text("Compartilhar…") }
             } label: { Image(systemName: "square.and.arrow.up") }
-            .menuStyle(.borderlessButton).fixedSize().help("Compartilhar arquivo")
+            .menuStyle(.borderlessButton).fixedSize().help(AppLanguage.text("Compartilhar arquivo"))
             Button { store.remove(url) } label: {
                 Image(systemName: "xmark").font(.system(size: 11, weight: .bold))
-            }.buttonStyle(.plain).help("Tirar da bandeja")
+            }.buttonStyle(.plain).help(AppLanguage.text("Tirar da bandeja"))
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .background(NJP.surface, in: Capsule())
         .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
-        .help("Arraste para outro app")
+        .help(AppLanguage.text("Arraste para outro app"))
     }
 }
 
@@ -279,8 +279,8 @@ private struct ClipboardSection: View {
         if !enabled {
             VStack(spacing: 10) {
                 Image(systemName: "doc.on.clipboard").font(.system(size: 24)).foregroundStyle(Color.primary.opacity(0.7))
-                Text("Histórico da área de transferência").font(.system(size: 14, weight: .bold))
-                Text("Guarda os últimos textos copiados, só na memória, e ignora gerenciadores de senha.")
+                Text(AppLanguage.text("Histórico da área de transferência")).font(.system(size: 14, weight: .bold))
+                Text(AppLanguage.text("Guarda os últimos textos copiados, só na memória, e ignora gerenciadores de senha."))
                     .font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.7)).multilineTextAlignment(.center)
                 Button {
                     enabled = true
@@ -292,7 +292,7 @@ private struct ClipboardSection: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if history.items.isEmpty {
-            Text("Copie um texto e ele aparece aqui.").font(.system(size: 12)).foregroundStyle(Color.primary.opacity(0.7))
+            Text(AppLanguage.text("Copie um texto e ele aparece aqui.")).font(.system(size: 12)).foregroundStyle(Color.primary.opacity(0.7))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView(.vertical) {
@@ -311,7 +311,7 @@ private struct ClipboardSection: View {
                             .padding(.horizontal, 14).padding(.vertical, 8)
                             .background(NJP.surface, in: Capsule())
                         }
-                        .buttonStyle(.plain).help("Copiar de novo")
+                        .buttonStyle(.plain).help(AppLanguage.text("Copiar de novo"))
                     }
                 }
                 .padding(.bottom, 8)
@@ -335,9 +335,9 @@ private struct RemindersSection: View {
         Group {
             switch service.access {
             case .unknown:
-                prompt("Conectar lembretes do Mac", symbol: "checklist", prominent: true) { Task { await service.requestAccess() } }
+                prompt(AppLanguage.text("Conectar lembretes do Mac"), symbol: "checklist", prominent: true) { Task { await service.requestAccess() } }
             case .denied:
-                prompt("Permitir lembretes em Ajustes do Sistema", symbol: "lock", prominent: false) {
+                prompt(AppLanguage.text("Permitir lembretes em Ajustes do Sistema"), symbol: "lock", prominent: false) {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders") { NSWorkspace.shared.open(url) }
                 }
             case .granted:
@@ -348,7 +348,7 @@ private struct RemindersSection: View {
                     }
                     if let notice { Text(notice).font(.caption).foregroundStyle(.secondary) }
                 if service.items.isEmpty {
-                    Text("Nenhum lembrete para hoje.").font(.system(size: 12)).foregroundStyle(Color.primary.opacity(0.7))
+                    Text(AppLanguage.text("Nenhum lembrete para hoje.")).font(.system(size: 12)).foregroundStyle(Color.primary.opacity(0.7))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView(.vertical) {
@@ -365,7 +365,7 @@ private struct RemindersSection: View {
         HStack(spacing: 10) {
             Button { service.complete(item) } label: {
                 Image(systemName: "circle").font(.system(size: 16)).foregroundStyle(NJP.accentSoft)
-            }.buttonStyle(.plain).help("Concluir")
+            }.buttonStyle(.plain).help(AppLanguage.text("Concluir"))
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
                 Text(item.listName).font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
@@ -403,8 +403,8 @@ private struct DictationSection: View {
         } else {
             VStack(spacing: 10) {
                 Image(systemName: "mic").font(.system(size: 26)).foregroundStyle(Color.primary.opacity(0.7))
-                Text("Ditado por voz").font(.system(size: 14, weight: .bold))
-                Text("Segure um atalho, fale, e o texto é colado no campo onde você estava. Funciona no Mac ou por API.")
+                Text(AppLanguage.text("Ditado por voz")).font(.system(size: 14, weight: .bold))
+                Text(AppLanguage.text("Segure um atalho, fale, e o texto é colado no campo onde você estava. Funciona no Mac ou por API."))
                     .font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.7)).multilineTextAlignment(.center)
                 Button {
                     enabled = true
@@ -441,7 +441,7 @@ private struct DictationPanel: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .help(model.isRecording ? "Parar e transcrever" : "Começar a gravar")
+                .help(model.isRecording ? AppLanguage.text("Parar e transcrever") : AppLanguage.text("Começar a gravar"))
                 if model.isRecording {
                     HStack(spacing: 2) {
                         ForEach(Array(model.levels.suffix(24).enumerated()), id: \.offset) { _, level in
@@ -457,16 +457,16 @@ private struct DictationPanel: View {
                     Text(model.status).font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.7))
                         .multilineTextAlignment(.center).frame(width: 190)
                 }
-                Text("Segure \(model.shortcutStatus) para ditar").font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
+                Text("\(AppLanguage.text("Segure")) \(model.shortcutStatus) \(AppLanguage.text("para ditar"))").font(.system(size: 10)).foregroundStyle(Color.primary.opacity(0.7))
                 if model.settings.autoPaste, !model.accessibilityGranted {
                     Button { model.allowAutomaticPaste() } label: {
-                        Text("Permitir colagem automática").font(.system(size: 11, weight: .semibold))
+                        Text(AppLanguage.text("Permitir colagem automática")).font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 12).padding(.vertical, 6).background(NJP.warn.opacity(0.25), in: Capsule())
                     }.buttonStyle(.plain)
                 }
                 if model.canRetry {
                     Button { model.retry() } label: {
-                        Text("Tentar de novo").font(.system(size: 11, weight: .semibold))
+                        Text(AppLanguage.text("Tentar de novo")).font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 12).padding(.vertical, 6).background(NJP.surfaceStrong, in: Capsule())
                     }.buttonStyle(.plain)
                 }
@@ -475,14 +475,14 @@ private struct DictationPanel: View {
                 }
                 if !model.pasteDiagnostic.isEmpty {
                     Text(model.pasteDiagnostic).font(.system(size: 9)).foregroundStyle(Color.primary.opacity(0.7))
-                        .lineLimit(4).frame(width: 220).help("Último destino da colagem")
+                        .lineLimit(4).frame(width: 220).help(AppLanguage.text("Último destino da colagem"))
                 }
             }
             .frame(width: 230)
             VStack(alignment: .leading, spacing: 6) {
-                Text("Últimos ditados").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.7))
+                Text(AppLanguage.text("Últimos ditados")).font(.system(size: 11, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.7))
                 if model.history.isEmpty {
-                    Text("Nada ainda.").font(.system(size: 12)).foregroundStyle(Color.primary.opacity(0.7))
+                    Text(AppLanguage.text("Nada ainda.")).font(.system(size: 12)).foregroundStyle(Color.primary.opacity(0.7))
                 } else {
                     ScrollView(.vertical) {
                         VStack(spacing: 6) {
@@ -500,7 +500,7 @@ private struct DictationPanel: View {
                                     .padding(.horizontal, 14).padding(.vertical, 8)
                                     .background(NJP.surface, in: Capsule())
                                 }
-                                .buttonStyle(.plain).help("Copiar de novo")
+                                .buttonStyle(.plain).help(AppLanguage.text("Copiar de novo"))
                             }
                         }
                     }

@@ -14,14 +14,14 @@ enum NJPSettings {
     static let diskAlertKey = "njp.diskAlert"
     static let agentAlertKey = "njp.agentAlert"
 
-    static let accentPalette: [(name: String, color: Color)] = [
-        ("Laranja", Color(red: 0.78, green: 0.39, blue: 0.23)),
-        ("Azul", Color(red: 0.30, green: 0.55, blue: 0.95)),
-        ("Verde", Color(red: 0.30, green: 0.70, blue: 0.45)),
-        ("Roxo", Color(red: 0.62, green: 0.45, blue: 0.95)),
-        ("Rosa", Color(red: 0.92, green: 0.38, blue: 0.62)),
-        ("Amarelo", Color(red: 0.85, green: 0.68, blue: 0.20)),
-    ]
+    static var accentPalette: [(name: String, color: Color)] { [
+        (AppLanguage.text("Laranja"), Color(red: 0.78, green: 0.39, blue: 0.23)),
+        (AppLanguage.text("Azul"), Color(red: 0.30, green: 0.55, blue: 0.95)),
+        (AppLanguage.text("Verde"), Color(red: 0.30, green: 0.70, blue: 0.45)),
+        (AppLanguage.text("Roxo"), Color(red: 0.62, green: 0.45, blue: 0.95)),
+        (AppLanguage.text("Rosa"), Color(red: 0.92, green: 0.38, blue: 0.62)),
+        (AppLanguage.text("Amarelo"), Color(red: 0.85, green: 0.68, blue: 0.20)),
+    ] }
 
     static func bool(_ key: String, default value: Bool) -> Bool {
         UserDefaults.standard.object(forKey: key) as? Bool ?? value

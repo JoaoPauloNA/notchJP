@@ -28,7 +28,7 @@ struct ResidentialTVControlView: View {
                     .lineLimit(2).help(controller.error ?? controller.message)
                 Spacer()
                 Button { Task { await controller.refresh() } } label: { Image(systemName: "arrow.clockwise") }
-                    .disabled(controller.busy || controller.waking).help("Atualizar TV").accessibilityLabel("Atualizar TV")
+                    .disabled(controller.busy || controller.waking).help(AppLanguage.text("Atualizar TV")).accessibilityLabel(AppLanguage.text("Atualizar TV"))
             }
             .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).frame(minHeight: 22)
         }
@@ -62,12 +62,12 @@ struct ResidentialTVControlView: View {
                 Spacer()
                 if !controller.connected {
                     Button { Task { await controller.wake() } } label: {
-                        Label(controller.waking ? "Ligando…" : "Ligar TV", systemImage: "power")
+                        Label(controller.waking ? "Ligando…" : AppLanguage.text("Ligar TV"), systemImage: "power")
                             .font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .background(accent.opacity(0.16), in: Capsule())
                     }.buttonStyle(.plain).disabled(controller.busy || controller.waking)
-                        .accessibilityLabel("Ligar TV").help("Ligar a TV pela rede local")
+                        .accessibilityLabel(AppLanguage.text("Ligar TV")).help(AppLanguage.text("Ligar a TV pela rede local"))
                 }
             }
             ZStack {
@@ -84,14 +84,14 @@ struct ResidentialTVControlView: View {
             HStack {
                 Text(controller.model)
                 Spacer()
-                Text(controller.connected ? "Conectada" : "Sem conexão")
+                Text(controller.connected ? AppLanguage.text("Conectada") : AppLanguage.text("Sem conexão"))
             }.font(.system(size: 11)).foregroundStyle(Color.primary.opacity(0.7))
         }
     }
 
     private var navigation: some View {
         VStack(spacing: 12) {
-            Text("Controle remoto").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.primary.opacity(0.7))
+            Text(AppLanguage.text("Controle remoto")).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.primary.opacity(0.7))
             VStack(spacing: 4) {
                 remoteButton("chevron.up", title: "Cima", command: "UP")
                 HStack(spacing: 4) {
@@ -100,14 +100,14 @@ struct ResidentialTVControlView: View {
                         Text("OK").font(.system(size: 15, weight: .semibold))
                             .frame(width: 52, height: 52).background(accent.opacity(0.8), in: Circle())
                             .foregroundStyle(Color.primary)
-                    }.buttonStyle(.plain).disabled(disabled).accessibilityLabel("Confirmar na TV")
+                    }.buttonStyle(.plain).disabled(disabled).accessibilityLabel(AppLanguage.text("Confirmar na TV"))
                     remoteButton("chevron.right", title: "Direita", command: "RIGHT")
                 }
                 remoteButton("chevron.down", title: "Baixo", command: "DOWN")
             }
             HStack(spacing: 32) {
                 remoteButton("house", title: "Abrir launcher casa", command: "HOME")
-                remoteButton("arrow.uturn.backward", title: "Voltar na TV", command: "BACK")
+                remoteButton("arrow.uturn.backward", title: AppLanguage.text("Voltar na TV"), command: "BACK")
             }
         }
     }
@@ -130,22 +130,22 @@ struct ResidentialTVControlView: View {
             }.frame(height: 48)
             HStack(spacing: 10) {
                 Button { controller.changeVolume(-1) } label: { Image(systemName: "speaker.wave.1") }
-                    .accessibilityLabel("Diminuir volume")
+                    .accessibilityLabel(AppLanguage.text("Diminuir volume"))
                 Slider(value: $volume, in: 0...100, step: 1) { active in
                     editing = active
                     if !active { controller.setVolume(Int(volume.rounded())) }
-                }.accessibilityLabel("Volume da TV")
+                }.accessibilityLabel(AppLanguage.text("Volume da TV"))
                 Button { controller.changeVolume(1) } label: { Image(systemName: "speaker.wave.3") }
-                    .accessibilityLabel("Aumentar volume")
+                    .accessibilityLabel(AppLanguage.text("Aumentar volume"))
             }.buttonStyle(.plain).disabled(disabled)
             Button { controller.toggleMute() } label: {
-                Label(controller.muted ? "Ativar som" : "Silenciar", systemImage: controller.muted ? "speaker.slash.fill" : "speaker.wave.2")
+                Label(controller.muted ? AppLanguage.text("Ativar som") : AppLanguage.text("Silenciar"), systemImage: controller.muted ? "speaker.slash.fill" : "speaker.wave.2")
                     .font(.system(size: 12, weight: .medium)).padding(.horizontal, 14).padding(.vertical, 9)
                     .frame(maxWidth: .infinity)
                     .background(NJP.surface, in: Capsule())
             }.buttonStyle(.plain).disabled(disabled)
             if composition.isExternal {
-                Text("Entradas HDMI / AV").font(.caption).foregroundStyle(.secondary)
+                Text(AppLanguage.text("Entradas HDMI / AV")).font(.caption).foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: 6) {
                     ForEach(controller.inputs) { input in
                         Button(input.label) { controller.switchInput(input.id) }
@@ -154,7 +154,7 @@ struct ResidentialTVControlView: View {
                     }
                 }.buttonStyle(.plain).disabled(disabled || controller.inputs.isEmpty)
             } else {
-            Menu("Entradas HDMI / AV") {
+            Menu(AppLanguage.text("Entradas HDMI / AV")) {
                 ForEach(controller.inputs) { input in
                     Button(input.label + (input.connected ? " · conectado" : "")) { controller.switchInput(input.id) }
                 }
@@ -180,9 +180,9 @@ struct ResidentialTVSettingsView: View {
                     }.id(device.id)
                 }
             }
-            Text("Conecte a TV e o Mac à mesma rede. Na primeira conexão, aceite o pedido na tela da TV.")
+            Text(AppLanguage.text("Conecte a TV e o Mac à mesma rede. Na primeira conexão, aceite o pedido na tela da TV."))
                 .font(.callout).foregroundStyle(.secondary)
-            Button(controller.busy ? "Buscando…" : "Buscar TV na rede") {
+            Button(controller.busy ? "Buscando…" : AppLanguage.text("Buscar TV na rede")) {
                 Task { await controller.refresh(search: true) }
             }.disabled(controller.busy || controller.waking)
             ForEach(controller.foundDevices) { device in
@@ -190,16 +190,16 @@ struct ResidentialTVSettingsView: View {
                     Task { await controller.selectDevice(device) }
                 }.disabled(controller.busy || controller.waking)
             }
-            TextField("Endereço IP da TV", text: $address).textFieldStyle(.roundedBorder)
-                .accessibilityLabel("Endereço IP da TV")
-            TextField("Endereço MAC da TV (opcional)", text: $mac).textFieldStyle(.roundedBorder)
+            TextField(AppLanguage.text("Endereço IP da TV"), text: $address).textFieldStyle(.roundedBorder)
+                .accessibilityLabel(AppLanguage.text("Endereço IP da TV"))
+            TextField(AppLanguage.text("Endereço MAC da TV (opcional)"), text: $mac).textFieldStyle(.roundedBorder)
             if !mac.isEmpty {
-                Button("Salvar endereço para ligar TV") {
+                Button(AppLanguage.text("Salvar endereço para ligar TV")) {
                     do { try controller.saveWakeMAC(mac); settingsError = nil }
                     catch { settingsError = error.localizedDescription }
                 }
             }
-            Text("Para ligar pelo app, ative ‘Ligar via Wi-Fi’ em ‘TV ligada com dispositivo móvel’ na TV. O endereço MAC é salvo automaticamente após a conexão.")
+            Text(AppLanguage.text("Para ligar pelo app, ative ‘Ligar via Wi-Fi’ em ‘TV ligada com dispositivo móvel’ na TV. O endereço MAC é salvo automaticamente após a conexão."))
                 .font(.caption).foregroundStyle(.secondary)
             if let settingsError { Text(settingsError).font(.caption).foregroundStyle(.orange) }
             if controller.busy || controller.waking { ProgressView().controlSize(.small) }
@@ -208,7 +208,7 @@ struct ResidentialTVSettingsView: View {
                 .textSelection(.enabled)
             HStack {
                 Spacer()
-                Button("Conectar") {
+                Button(AppLanguage.text("Conectar")) {
                     controller.host = address.trimmingCharacters(in: .whitespacesAndNewlines)
                     Task { await controller.refresh() }
                 }.buttonStyle(.borderedProminent).disabled(controller.busy || controller.waking || address.isEmpty)

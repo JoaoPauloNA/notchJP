@@ -11,7 +11,7 @@ struct ACAccountSettingsView: View {
     @State private var region = "BR"
     var body: some View {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Controle do ar").font(.title2.weight(.semibold))
+                Text(AppLanguage.text("Controle do ar")).font(.title2.weight(.semibold))
                     .task { await controller.refreshDevices() }
                 Text(controller.backend.name).foregroundStyle(.secondary)
                 if let tcl = controller.backend as? TCLBackend, tcl.loginStorageNotice != nil {
@@ -19,7 +19,7 @@ struct ACAccountSettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if let tcl = controller.backend as? TCLBackend {
-                    Button("Autorizar sessão salva no Chaveiro") {
+                    Button(AppLanguage.text("Autorizar sessão salva no Chaveiro")) {
                         do { try tcl.authorizeSavedSession(); Task { await controller.refresh() } }
                         catch { authorizationError = error.localizedDescription }
                     }
@@ -44,33 +44,33 @@ struct ACAccountSettingsView: View {
                     Text("\(controller.devices.count) aparelho\(controller.devices.count > 1 ? "s" : "") na conta. No painel, o seletor do topo troca entre eles.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Acesso com conta TCL").font(.headline)
+                Text(AppLanguage.text("Acesso com conta TCL")).font(.headline)
                 Picker("Entrar com", selection: $loginMethod) {
-                    Text("Código por e-mail").tag("code")
-                    Text("Senha TCL").tag("password")
+                    Text(AppLanguage.text("Código por e-mail")).tag("code")
+                    Text(AppLanguage.text("Senha TCL")).tag("password")
                 }.pickerStyle(.segmented).disabled(controller.busy)
                 TextField("E-mail da conta TCL Home", text: $email)
                     .textContentType(.username).autocorrectionDisabled()
                 HStack {
-                    Text("País da conta").font(.callout)
+                    Text(AppLanguage.text("País da conta")).font(.callout)
                     Spacer()
                     TextField("BR", text: $region).frame(width: 65)
                 }
                 if loginMethod == "code" {
-                    Text("Use o mesmo e-mail vinculado à sua conta TCL Home, inclusive se você entra pelo Google.")
+                    Text(AppLanguage.text("Use o mesmo e-mail vinculado à sua conta TCL Home, inclusive se você entra pelo Google."))
                         .font(.caption).foregroundStyle(.secondary)
-                    Button(controller.busy ? "Aguarde…" : codeSent ? "Solicitar outro código" : "Solicitar código por e-mail") {
+                    Button(controller.busy ? "Aguarde…" : codeSent ? AppLanguage.text("Solicitar outro código") : "Solicitar código por e-mail") {
                         Task { codeSent = await controller.requestLoginCode(email: email.trimmingCharacters(in: .whitespacesAndNewlines), region: region.uppercased()) }
                     }.disabled(controller.busy || email.isEmpty || region.isEmpty)
-                    if codeSent { Text("Código solicitado. Confira sua caixa de entrada e o spam.").font(.caption).foregroundStyle(.secondary) }
+                    if codeSent { Text(AppLanguage.text("Código solicitado. Confira sua caixa de entrada e o spam.")).font(.caption).foregroundStyle(.secondary) }
                     TextField("Código recebido por e-mail", text: $emailCode)
                         .textContentType(.oneTimeCode).autocorrectionDisabled()
                 } else {
-                    SecureField("Senha TCL Home", text: $password).textContentType(.password)
-                    Text("Use uma senha própria da TCL Home. A senha do Google não deve ser usada aqui.")
+                    SecureField(AppLanguage.text("Senha TCL Home"), text: $password).textContentType(.password)
+                    Text(AppLanguage.text("Use uma senha própria da TCL Home. A senha do Google não deve ser usada aqui."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Button(controller.busy ? "Conectando…" : "Conectar") {
+                Button(controller.busy ? "Conectando…" : AppLanguage.text("Conectar")) {
                     Task {
                         let accountEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
                         let connected: Bool
@@ -89,11 +89,11 @@ struct ACAccountSettingsView: View {
                 if let error = controller.error {
                     Text(error).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
                 }
-                if let updated = controller.lastUpdated { Text("Última atualização: \(updated.formatted(date: .omitted, time: .standard))").font(.caption) }
-                Text("Os controles ficam disponíveis depois de obter o estado do aparelho.").font(.callout).foregroundStyle(.secondary)
+                if let updated = controller.lastUpdated { Text("\(AppLanguage.text("Última atualização")): \(updated.formatted(date: .omitted, time: .standard))").font(.caption) }
+                Text(AppLanguage.text("Os controles ficam disponíveis depois de obter o estado do aparelho.")).font(.callout).foregroundStyle(.secondary)
                 HStack {
                     Menu("Mais") {
-                        Button("Sair da conta TCL") { controller.signOut(); password = ""; emailCode = ""; codeSent = false }.disabled(controller.busy)
+                        Button(AppLanguage.text("Sair da conta TCL")) { controller.signOut(); password = ""; emailCode = ""; codeSent = false }.disabled(controller.busy)
                     }.fixedSize()
                     Spacer()
                 }

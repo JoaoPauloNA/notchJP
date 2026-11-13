@@ -61,7 +61,7 @@ enum AudioMixerHardware {
     private var tap: AudioObjectID = 0
     private var device: AudioObjectID = 0
     private var io: AudioDeviceIOProcID?
-    private var dsp: AppAudioDSP?
+    private var dsp: (any AudioProcessing)?
     let processes: [AudioObjectID]
     let output: AudioObjectID
     let source: AudioObjectID
@@ -91,21 +91,9 @@ enum AudioMixerHardware {
         description.muteBehavior = .mutedWhenTapped
         try AudioMixerHardware.check(AudioHardwareCreateProcessTap(description, &tap), "Não foi possível controlar este aplicativo")
         let format = try AudioMixerHardware.value(tap, kAudioTapPropertyFormat, initial: AudioStreamBasicDescription())
-        guard format.mFormatID == kAudioFormatLinearPCM,
-              format.mFormatFlags & kAudioFormatFlagIsFloat != 0,
-              format.mBitsPerChannel == 32, (1...2).contains(format.mChannelsPerFrame),
-              format.mSampleRate > 0 else {
-            throw AudioMixerError(message: "Esta saída não oferece áudio mono/estéreo compatível com o mixer.")
-        }
+        _ = try AudioPCMFormat(format)
         let destination = try AudioMixerHardware.value(streams[0], kAudioStreamPropertyVirtualFormat, initial: AudioStreamBasicDescription())
-        guard destination.mSampleRate == format.mSampleRate,
-              destination.mChannelsPerFrame == format.mChannelsPerFrame,
-              destination.mFormatID == format.mFormatID,
-              destination.mFormatFlags == format.mFormatFlags,
-              destination.mBitsPerChannel == format.mBitsPerChannel else {
-            throw AudioMixerError(message: "A saída escolhida tem um formato diferente da origem. Use saídas com a mesma frequência e canais; conversão ainda não disponível.")
-        }
-        let planar = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved != 0
+        let destinationFormat = try AudioPCMFormat(destination)
         let tapUID = try AudioMixerHardware.string(tap, kAudioTapPropertyUID)
         let config: [String: Any] = [
             kAudioAggregateDeviceNameKey: "notchJP · mixer",
@@ -117,7 +105,18 @@ enum AudioMixerHardware {
             kAudioAggregateDeviceTapAutoStartKey: true,
         ]
         try AudioMixerHardware.check(AudioHardwareCreateAggregateDevice(config as CFDictionary, &device), "Não foi possível preparar o mixer")
-        let processor = AppAudioDSP(gain: gain, channels: Int(format.mChannelsPerFrame), planar: planar, sampleRate: format.mSampleRate)
+        // Read the aggregate's negotiated tap format: drift compensation may
+        // already have converted its clock to the destination's nominal rate.
+        let inputStreams = try AudioMixerHardware.objects(device, kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeInput)
+        guard let tapStream = inputStreams.last else { throw AudioMixerError(message: "O mixer não encontrou o fluxo de áudio do aplicativo.") }
+        let negotiated = try AudioMixerHardware.value(tapStream, kAudioStreamPropertyVirtualFormat, initial: AudioStreamBasicDescription())
+        let inputFormat = try AudioPCMFormat(negotiated)
+        let processor: any AudioProcessing
+        if inputFormat == destinationFormat {
+            processor = AppAudioDSP(gain: gain, channels: inputFormat.channels, planar: inputFormat.planar, sampleRate: inputFormat.rate)
+        } else {
+            processor = try AudioSampleConverter(input: inputFormat, output: destinationFormat, gain: gain)
+        }
         dsp = processor
         try AudioMixerHardware.check(AudioDeviceCreateIOProcIDWithBlock(&io, device, nil) { _, input, _, output, _ in
             processor.render(input: input, output: output)

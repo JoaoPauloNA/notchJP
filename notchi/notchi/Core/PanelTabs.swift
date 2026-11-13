@@ -4,7 +4,7 @@ enum PanelTabs {
     static let orderKey = "njp.tabs.order"
     static let hiddenKey = "njp.tabs.hidden"
     static let openingKey = "njp.tabs.opening"
-    static let titles = ["Spotify", "Cotas e saldos", "Calendário", "Mac", "Agentes", "Ferramentas", "Áudio"]
+    static var titles: [String] { ["Spotify", AppLanguage.text("Cotas e saldos"), AppLanguage.text("Calendário"), "Mac", AppLanguage.text("Agentes"), AppLanguage.text("Ferramentas"), AppLanguage.text("Áudio")] }
     static let symbols = ["music.note", "chart.bar.fill", "calendar", "cpu", "terminal", "square.grid.2x2", "slider.horizontal.3"]
     // Existing numeric identities remain stable; positions are stored separately.
     static func normalized(_ values: [Int]) -> [Int] {
@@ -32,7 +32,7 @@ struct PanelTabsSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Abas do painel").font(.headline)
+            Text(AppLanguage.text("Abas do painel")).font(.headline)
             ForEach(PanelTabs.order, id: \.self) { id in
                 HStack {
                     Toggle(PanelTabs.titles[id], isOn: Binding(get: { PanelTabs.visible.contains(id) }, set: { show in
@@ -45,7 +45,7 @@ struct PanelTabsSettings: View {
                     }))
                     Spacer()
                     Image(systemName: "line.3.horizontal").foregroundStyle(.secondary).padding(6)
-                        .draggable(String(id)).help("Arraste para ordenar")
+                        .draggable(String(id)).help(AppLanguage.text("Arraste para ordenar"))
 
                 }
                 .dropDestination(for: String.self) { items, _ in
@@ -60,11 +60,11 @@ struct PanelTabsSettings: View {
                     return true
                 }
             }
-            Picker("Aba inicial", selection: $opening) {
+            Picker(AppLanguage.text("Aba inicial"), selection: $opening) {
                 ForEach(PanelTabs.visible, id: \.self) { id in Text(PanelTabs.titles[id]).tag(id) }
             }
-            Text("A aba inicial é usada quando “Lembrar a última aba” está desligado.").font(.caption).foregroundStyle(.secondary)
-            Button("Restaurar abas padrão") {
+            Text(AppLanguage.text("A aba inicial é usada quando “Lembrar a última aba” está desligado.")).font(.caption).foregroundStyle(.secondary)
+            Button(AppLanguage.text("Restaurar abas padrão")) {
                 update {
                     for key in [PanelTabs.orderKey, PanelTabs.hiddenKey, PanelTabs.openingKey] { UserDefaults.standard.removeObject(forKey: key) }
                     opening = 0
